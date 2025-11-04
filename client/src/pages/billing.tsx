@@ -123,6 +123,7 @@ export default function BillingPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
       if (data.shouldPrint) {
         window.print();
       }
@@ -136,6 +137,7 @@ export default function BillingPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
       if (data.shouldPrint) {
         window.print();
       }
@@ -292,6 +294,7 @@ export default function BillingPage() {
             price: item.price.toFixed(2),
             notes: item.notes || null,
             status: "new",
+            isVeg: item.isVeg ?? true,
           },
         });
       }

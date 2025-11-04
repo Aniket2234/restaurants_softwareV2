@@ -93,6 +93,7 @@ export const orderItems = pgTable("order_items", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   notes: text("notes"),
   status: text("status").notNull().default("new"),
+  isVeg: boolean("is_veg").notNull().default(true),
 });
 
 export const insertOrderItemSchema = createInsertSchema(orderItems).omit({ id: true });
