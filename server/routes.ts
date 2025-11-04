@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import {
+  insertFloorSchema,
   insertTableSchema,
   insertMenuItemSchema,
   insertOrderSchema,
@@ -33,6 +34,47 @@ function broadcastUpdate(type: string, data: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.get("/api/floors", async (req, res) => {
+    const floors = await storage.getFloors();
+    res.json(floors);
+  });
+
+  app.get("/api/floors/:id", async (req, res) => {
+    const floor = await storage.getFloor(req.params.id);
+    if (!floor) {
+      return res.status(404).json({ error: "Floor not found" });
+    }
+    res.json(floor);
+  });
+
+  app.post("/api/floors", async (req, res) => {
+    const result = insertFloorSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const floor = await storage.createFloor(result.data);
+    broadcastUpdate("floor_created", floor);
+    res.json(floor);
+  });
+
+  app.patch("/api/floors/:id", async (req, res) => {
+    const floor = await storage.updateFloor(req.params.id, req.body);
+    if (!floor) {
+      return res.status(404).json({ error: "Floor not found" });
+    }
+    broadcastUpdate("floor_updated", floor);
+    res.json(floor);
+  });
+
+  app.delete("/api/floors/:id", async (req, res) => {
+    const success = await storage.deleteFloor(req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: "Floor not found" });
+    }
+    broadcastUpdate("floor_deleted", { id: req.params.id });
+    res.json({ success: true });
+  });
+
   app.get("/api/tables", async (req, res) => {
     const tables = await storage.getTables();
     res.json(tables);
@@ -54,6 +96,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const table = await storage.createTable(result.data);
     broadcastUpdate("table_created", table);
     res.json(table);
+  });
+
+  app.patch("/api/tables/:id", async (req, res) => {
+    const table = await storage.updateTable(req.params.id, req.body);
+    if (!table) {
+      return res.status(404).json({ error: "Table not found" });
+    }
+    broadcastUpdate("table_updated", table);
+    res.json(table);
+  });
+
+  app.delete("/api/tables/:id", async (req, res) => {
+    const success = await storage.deleteTable(req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: "Table not found" });
+    }
+    broadcastUpdate("table_deleted", { id: req.params.id });
+    res.json({ success: true });
   });
 
   app.patch("/api/tables/:id/status", async (req, res) => {

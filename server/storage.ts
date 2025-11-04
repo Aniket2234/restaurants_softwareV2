@@ -1,6 +1,8 @@
 import {
   type User,
   type InsertUser,
+  type Floor,
+  type InsertFloor,
   type Table,
   type InsertTable,
   type MenuItem,
@@ -19,12 +21,20 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
+  getFloors(): Promise<Floor[]>;
+  getFloor(id: string): Promise<Floor | undefined>;
+  createFloor(floor: InsertFloor): Promise<Floor>;
+  updateFloor(id: string, floor: Partial<InsertFloor>): Promise<Floor | undefined>;
+  deleteFloor(id: string): Promise<boolean>;
+
   getTables(): Promise<Table[]>;
   getTable(id: string): Promise<Table | undefined>;
   getTableByNumber(tableNumber: string): Promise<Table | undefined>;
   createTable(table: InsertTable): Promise<Table>;
+  updateTable(id: string, table: Partial<InsertTable>): Promise<Table | undefined>;
   updateTableStatus(id: string, status: string): Promise<Table | undefined>;
   updateTableOrder(id: string, orderId: string | null): Promise<Table | undefined>;
+  deleteTable(id: string): Promise<boolean>;
 
   getMenuItems(): Promise<MenuItem[]>;
   getMenuItem(id: string): Promise<MenuItem | undefined>;
@@ -57,6 +67,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private floors: Map<string, Floor>;
   private tables: Map<string, Table>;
   private menuItems: Map<string, MenuItem>;
   private orders: Map<string, Order>;
@@ -65,6 +76,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.floors = new Map();
     this.tables = new Map();
     this.menuItems = new Map();
     this.orders = new Map();
@@ -74,6 +86,15 @@ export class MemStorage implements IStorage {
   }
 
   private seedData() {
+    const defaultFloorId = randomUUID();
+    const defaultFloor: Floor = {
+      id: defaultFloorId,
+      name: "Ground Floor",
+      displayOrder: 0,
+      createdAt: new Date(),
+    };
+    this.floors.set(defaultFloorId, defaultFloor);
+
     const tableNumbers = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
     const seats = [4, 6, 4, 2, 8, 4, 2, 6, 4, 4, 2, 4];
     
@@ -85,6 +106,7 @@ export class MemStorage implements IStorage {
         seats: seats[index],
         status: "free" as string,
         currentOrderId: null,
+        floorId: defaultFloorId,
       };
       this.tables.set(id, table);
     });
@@ -133,6 +155,42 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  async getFloors(): Promise<Floor[]> {
+    return Array.from(this.floors.values()).sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  async getFloor(id: string): Promise<Floor | undefined> {
+    return this.floors.get(id);
+  }
+
+  async createFloor(insertFloor: InsertFloor): Promise<Floor> {
+    const id = randomUUID();
+    const floor: Floor = {
+      id,
+      name: insertFloor.name,
+      displayOrder: insertFloor.displayOrder ?? 0,
+      createdAt: new Date(),
+    };
+    this.floors.set(id, floor);
+    return floor;
+  }
+
+  async updateFloor(id: string, floorData: Partial<InsertFloor>): Promise<Floor | undefined> {
+    const existing = this.floors.get(id);
+    if (!existing) return undefined;
+    const updated: Floor = {
+      ...existing,
+      name: floorData.name ?? existing.name,
+      displayOrder: floorData.displayOrder ?? existing.displayOrder,
+    };
+    this.floors.set(id, updated);
+    return updated;
+  }
+
+  async deleteFloor(id: string): Promise<boolean> {
+    return this.floors.delete(id);
+  }
+
   async getTables(): Promise<Table[]> {
     return Array.from(this.tables.values());
   }
@@ -153,9 +211,24 @@ export class MemStorage implements IStorage {
       seats: insertTable.seats,
       status: insertTable.status ?? "free",
       currentOrderId: null,
+      floorId: insertTable.floorId ?? null,
     };
     this.tables.set(id, table);
     return table;
+  }
+
+  async updateTable(id: string, tableData: Partial<InsertTable>): Promise<Table | undefined> {
+    const existing = this.tables.get(id);
+    if (!existing) return undefined;
+    const updated: Table = {
+      ...existing,
+      tableNumber: tableData.tableNumber ?? existing.tableNumber,
+      seats: tableData.seats ?? existing.seats,
+      status: tableData.status ?? existing.status,
+      floorId: tableData.floorId !== undefined ? tableData.floorId : existing.floorId,
+    };
+    this.tables.set(id, updated);
+    return updated;
   }
 
   async updateTableStatus(id: string, status: string): Promise<Table | undefined> {
@@ -172,6 +245,10 @@ export class MemStorage implements IStorage {
     const updated: Table = { ...table, currentOrderId: orderId };
     this.tables.set(id, updated);
     return updated;
+  }
+
+  async deleteTable(id: string): Promise<boolean> {
+    return this.tables.delete(id);
   }
 
   async getMenuItems(): Promise<MenuItem[]> {

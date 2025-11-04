@@ -17,12 +17,24 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+export const floors = pgTable("floors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const insertFloorSchema = createInsertSchema(floors).omit({ id: true, createdAt: true });
+export type InsertFloor = z.infer<typeof insertFloorSchema>;
+export type Floor = typeof floors.$inferSelect;
+
 export const tables = pgTable("tables", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tableNumber: text("table_number").notNull().unique(),
   seats: integer("seats").notNull(),
   status: text("status").notNull().default("free"),
   currentOrderId: varchar("current_order_id"),
+  floorId: varchar("floor_id"),
 });
 
 export const insertTableSchema = createInsertSchema(tables).omit({ id: true, currentOrderId: true });
