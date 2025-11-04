@@ -188,6 +188,10 @@ export class MemStorage implements IStorage {
   }
 
   async deleteFloor(id: string): Promise<boolean> {
+    const tablesOnFloor = Array.from(this.tables.values()).filter(t => t.floorId === id);
+    if (tablesOnFloor.length > 0) {
+      throw new Error(`Cannot delete floor: ${tablesOnFloor.length} table(s) are assigned to this floor`);
+    }
     return this.floors.delete(id);
   }
 

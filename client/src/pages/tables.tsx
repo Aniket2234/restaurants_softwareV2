@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import AppHeader from "@/components/AppHeader";
 import TableCard from "@/components/TableCard";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -13,9 +15,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Table, Order } from "@shared/schema";
+import type { Table, Order, Floor } from "@shared/schema";
 
 interface TableWithOrder extends Table {
   orderStartTime?: string | null;
@@ -23,19 +33,36 @@ interface TableWithOrder extends Table {
 
 export default function TablesPage() {
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   useWebSocket();
   const [tablesWithOrders, setTablesWithOrders] = useState<TableWithOrder[]>([]);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [selectedTable, setSelectedTable] = useState<TableWithOrder | null>(null);
   const [orderDetails, setOrderDetails] = useState<any[]>([]);
+  
+  const [showAddFloorDialog, setShowAddFloorDialog] = useState(false);
+  const [showAddTableDialog, setShowAddTableDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editMode, setEditMode] = useState<"floors" | "tables">("floors");
+  
+  const [floorName, setFloorName] = useState("");
+  const [tableNumber, setTableNumber] = useState("");
+  const [tableSeats, setTableSeats] = useState("4");
+  const [selectedFloorId, setSelectedFloorId] = useState("");
 
-  const { data: tables = [], isLoading } = useQuery<Table[]>({
+  const { data: tables = [], isLoading: tablesLoading } = useQuery<Table[]>({
     queryKey: ["/api/tables"],
+  });
+
+  const { data: floors = [], isLoading: floorsLoading } = useQuery<Floor[]>({
+    queryKey: ["/api/floors"],
   });
 
   const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
+
+  const isLoading = tablesLoading || floorsLoading;
 
   useEffect(() => {
     if (!tables.length) {
@@ -75,6 +102,70 @@ export default function TablesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+    },
+  });
+
+  const createFloorMutation = useMutation({
+    mutationFn: async (data: { name: string; displayOrder: number }) => {
+      const res = await apiRequest("POST", "/api/floors", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/floors"] });
+      setShowAddFloorDialog(false);
+      setFloorName("");
+      toast({ title: "Floor created successfully" });
+    },
+  });
+
+  const createTableMutation = useMutation({
+    mutationFn: async (data: { tableNumber: string; seats: number; floorId: string | null }) => {
+      const res = await apiRequest("POST", "/api/tables", { ...data, status: "free" });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
+      setShowAddTableDialog(false);
+      setTableNumber("");
+      setTableSeats("4");
+      setSelectedFloorId("");
+      toast({ title: "Table created successfully" });
+    },
+  });
+
+  const deleteFloorMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/floors/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/floors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
+      toast({ title: "Floor deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Cannot delete floor", 
+        description: error.message || "Please move or delete all tables from this floor first",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const deleteTableMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/tables/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "Table deleted successfully" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Cannot delete table", 
+        description: error.message || "An error occurred",
+        variant: "destructive" 
+      });
     },
   });
 
@@ -134,6 +225,32 @@ export default function TablesPage() {
       navigate(`/billing?tableId=${table.id}&tableNumber=${table.tableNumber}&orderId=${table.currentOrderId}&type=dine-in`);
     }
   };
+
+  const handleAddFloor = () => {
+    if (!floorName.trim()) {
+      toast({ title: "Floor name required", variant: "destructive" });
+      return;
+    }
+    createFloorMutation.mutate({ name: floorName, displayOrder: floors.length });
+  };
+
+  const handleAddTable = () => {
+    if (!tableNumber.trim()) {
+      toast({ title: "Table number required", variant: "destructive" });
+      return;
+    }
+    const floorId = selectedFloorId || (floors.length > 0 ? floors[0].id : null);
+    createTableMutation.mutate({
+      tableNumber,
+      seats: parseInt(tableSeats) || 4,
+      floorId,
+    });
+  };
+
+  const tablesByFloor = floors.map((floor) => ({
+    floor,
+    tables: tablesWithOrders.filter((t) => t.floorId === floor.id),
+  }));
 
   const statusCounts = {
     free: tablesWithOrders.filter((t) => t.status === "free").length,
@@ -207,6 +324,38 @@ export default function TablesPage() {
           <div className="flex gap-2">
             <Button 
               variant="outline" 
+              onClick={() => {
+                setShowAddFloorDialog(true);
+              }}
+              data-testid="button-add-floor"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Floor
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSelectedFloorId(floors.length > 0 ? floors[0].id : "");
+                setShowAddTableDialog(true);
+              }}
+              data-testid="button-add-table"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Table
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setEditMode("floors");
+                setShowEditDialog(true);
+              }}
+              data-testid="button-edit"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button 
+              variant="outline" 
               onClick={() => navigate("/billing?type=delivery")}
               data-testid="button-delivery-order"
             >
@@ -221,20 +370,25 @@ export default function TablesPage() {
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">Loading tables...</div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-            {tablesWithOrders.map((table) => (
-              <TableCard
-                key={table.id}
-                id={table.id}
-                tableNumber={table.tableNumber}
-                status={getTableStatus(table)}
-                seats={table.seats}
-                orderStartTime={table.orderStartTime}
-                onClick={handleTableClick}
-                onToggleServed={handleToggleServed}
-                onViewOrder={handleViewOrder}
-                onBilling={handleBilling}
-              />
+          <div className="space-y-8">
+            {tablesByFloor.map(({ floor, tables: floorTables }) => (
+              <div key={floor.id}>
+                <h2 className="text-xl font-bold mb-4">{floor.name}</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+                  {floorTables.map((table) => (
+                    <TableCard
+                      key={table.id}
+                      id={table.id}
+                      tableNumber={table.tableNumber}
+                      status={getTableStatus(table)}
+                      seats={table.seats}
+                      orderStartTime={table.orderStartTime}
+                      onClick={handleTableClick}
+                      onToggleServed={handleToggleServed}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -301,6 +455,151 @@ export default function TablesPage() {
                 </div>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddFloorDialog} onOpenChange={setShowAddFloorDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Floor</DialogTitle>
+            <DialogDescription>Create a new floor to organize your tables</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="floor-name">Floor Name</Label>
+              <Input
+                id="floor-name"
+                placeholder="e.g., Ground Floor, First Floor"
+                value={floorName}
+                onChange={(e) => setFloorName(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowAddFloorDialog(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleAddFloor} className="flex-1">
+                Add Floor
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAddTableDialog} onOpenChange={setShowAddTableDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Table</DialogTitle>
+            <DialogDescription>Create a new table</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="table-number">Table Number</Label>
+              <Input
+                id="table-number"
+                placeholder="e.g., T1, T2"
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="table-seats">Number of Seats</Label>
+              <Input
+                id="table-seats"
+                type="number"
+                min="1"
+                placeholder="4"
+                value={tableSeats}
+                onChange={(e) => setTableSeats(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="table-floor">Floor</Label>
+              <Select value={selectedFloorId} onValueChange={setSelectedFloorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select floor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {floors.map((floor) => (
+                    <SelectItem key={floor.id} value={floor.id}>
+                      {floor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowAddTableDialog(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleAddTable} className="flex-1">
+                Add Table
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit {editMode === "floors" ? "Floors" : "Tables"}</DialogTitle>
+            <DialogDescription>
+              {editMode === "floors" ? "Manage your floors" : "Manage your tables"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {editMode === "floors" ? (
+              floors.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">No floors available</p>
+              ) : (
+                floors.map((floor) => (
+                  <div key={floor.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="font-medium">{floor.name}</span>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteFloorMutation.mutate(floor.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )
+            ) : (
+              tablesWithOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">No tables available</p>
+              ) : (
+                tablesWithOrders.map((table) => (
+                  <div key={table.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <span className="font-medium">{table.tableNumber}</span>
+                      <span className="text-sm text-muted-foreground ml-2">({table.seats} seats)</span>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteTableMutation.mutate(table.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setEditMode(editMode === "floors" ? "tables" : "floors")}
+              className="flex-1"
+            >
+              Switch to {editMode === "floors" ? "Tables" : "Floors"}
+            </Button>
+            <Button onClick={() => setShowEditDialog(false)} className="flex-1">
+              Done
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
