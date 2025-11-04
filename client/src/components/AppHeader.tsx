@@ -4,12 +4,11 @@ import {
   User, 
   Settings, 
   Menu,
-  ShoppingBag,
-  Users,
-  BarChart3,
-  Package,
-  FileText,
   ShoppingCart,
+  Table,
+  MonitorPlay,
+  UtensilsCrossed,
+  FileText,
   HelpCircle,
   Phone
 } from "lucide-react";
@@ -54,27 +53,27 @@ export default function AppHeader({
 
   const quickAccessButtons = [
     { 
-      label: "Purchase", 
-      icon: ShoppingBag, 
-      path: "/purchase-orders",
+      label: "Billing / POS", 
+      icon: ShoppingCart, 
+      path: "/billing",
       color: "text-blue-600 dark:text-blue-400"
     },
     { 
-      label: "HR / Staff", 
-      icon: Users, 
-      path: "/staff",
+      label: "Tables", 
+      icon: Table, 
+      path: "/tables",
       color: "text-purple-600 dark:text-purple-400"
     },
     { 
-      label: "Analytics", 
-      icon: BarChart3, 
-      path: "/analytics",
+      label: "Kitchen Display", 
+      icon: MonitorPlay, 
+      path: "/kitchen",
       color: "text-green-600 dark:text-green-400"
     },
     { 
-      label: "Inventory", 
-      icon: Package, 
-      path: "/inventory",
+      label: "Menu", 
+      icon: UtensilsCrossed, 
+      path: "/menu",
       color: "text-orange-600 dark:text-orange-400"
     },
   ];

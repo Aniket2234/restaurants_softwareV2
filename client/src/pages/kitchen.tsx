@@ -73,6 +73,10 @@ export default function KitchenPage() {
       const res = await apiRequest("PATCH", `/api/order-items/${itemId}/status`, { status });
       return await res.json();
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
+    },
   });
 
   const markAllPreparedMutation = useMutation({
@@ -85,6 +89,10 @@ export default function KitchenPage() {
           apiRequest("PATCH", `/api/order-items/${item.id}/status`, { status: "ready" })
         )
       );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
     },
   });
 

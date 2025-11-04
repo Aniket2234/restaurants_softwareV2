@@ -165,29 +165,6 @@ export default function TableCard({
           Mark Served
         </button>
       )}
-      
-      <div className="flex gap-2 mt-2">
-        {onViewOrder && (
-          <button
-            onClick={handleViewOrder}
-            className="w-9 h-9 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center transition-all hover:shadow-md hover:scale-110 active:scale-95"
-            title="View Order Details"
-            data-testid={`view-order-${id}`}
-          >
-            <FileText className="h-4 w-4" />
-          </button>
-        )}
-        {onBilling && (
-          <button
-            onClick={handleBilling}
-            className="w-9 h-9 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition-all hover:shadow-md hover:scale-110 active:scale-95"
-            title="Go to Billing"
-            data-testid={`billing-${id}`}
-          >
-            <DollarSign className="h-4 w-4" />
-          </button>
-        )}
-      </div>
     </div>
   );
 }
