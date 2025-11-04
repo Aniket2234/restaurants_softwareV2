@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,47 +26,39 @@ export default function KitchenPage() {
     queryKey: ["/api/tables"],
   });
 
-  const [ordersWithDetails, setOrdersWithDetails] = useState<OrderWithDetails[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const orderItemQueries = useQueries({
+    queries: activeOrders.map((order) => ({
+      queryKey: ["/api/orders", order.id, "items"],
+      queryFn: async () => {
+        const res = await fetch(`/api/orders/${order.id}/items`);
+        return await res.json() as DBOrderItem[];
+      },
+    })),
+  });
 
-  useEffect(() => {
-    const loadOrderDetails = async () => {
-      if (!activeOrders.length) {
-        setOrdersWithDetails([]);
-        setIsLoading(false);
-        return;
+  const ordersWithDetails = useMemo(() => {
+    if (orderItemQueries.some(q => q.isLoading)) {
+      return [];
+    }
+
+    return activeOrders.map((order, index) => {
+      const items = orderItemQueries[index]?.data || [];
+      
+      let tableNumber = "";
+      if (order.tableId) {
+        const table = tables.find(t => t.id === order.tableId);
+        tableNumber = table?.tableNumber || "Unknown";
+      } else if (order.orderType === "delivery") {
+        tableNumber = "Delivery";
+      } else {
+        tableNumber = "Pickup";
       }
 
-      try {
-        const ordersWithItems = await Promise.all(
-          activeOrders.map(async (order) => {
-            const itemsRes = await fetch(`/api/orders/${order.id}/items`);
-            const items: DBOrderItem[] = await itemsRes.json();
+      return { order, items, tableNumber };
+    });
+  }, [activeOrders, orderItemQueries, tables]);
 
-            let tableNumber = "";
-            if (order.tableId) {
-              const table = tables.find(t => t.id === order.tableId);
-              tableNumber = table?.tableNumber || "Unknown";
-            } else if (order.orderType === "delivery") {
-              tableNumber = "Delivery";
-            } else {
-              tableNumber = "Pickup";
-            }
-
-            return { order, items, tableNumber };
-          })
-        );
-
-        setOrdersWithDetails(ordersWithItems);
-      } catch (error) {
-        console.error("Failed to load order details:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadOrderDetails();
-  }, [activeOrders, tables]);
+  const isLoading = orderItemQueries.some(q => q.isLoading);
 
   const updateItemStatusMutation = useMutation({
     mutationFn: async ({ itemId, status }: { itemId: string; status: string }) => {

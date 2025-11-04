@@ -25,6 +25,7 @@ interface OrderItem {
   price: number;
   quantity: number;
   notes?: string;
+  isVeg?: boolean;
 }
 
 interface OrderCartProps {
@@ -122,10 +123,14 @@ export default function OrderCart({
           </div>
         ) : (
           <div className="space-y-2">
-            {items.map((item) => (
+            {items.map((item) => {
+              const borderColor = item.isVeg === false ? 'bg-red-500' : 'bg-green-500';
+              
+              return (
               <div key={item.id} data-testid={`cart-item-${item.id}`}>
-                <div className="border border-gray-200 rounded-lg p-2.5 bg-white hover:border-primary/30 hover:shadow-sm transition-all">
-                  <div className="flex items-center gap-2">
+                <div className="border border-gray-200 rounded-lg p-2.5 bg-white hover:border-primary/30 hover:shadow-sm transition-all relative">
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-lg ${borderColor}`}></div>
+                  <div className="flex items-center gap-2 pl-2">
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-gray-900 text-sm truncate">{item.name}</p>
                       <p className="text-xs text-gray-500 font-medium">₹{item.price.toFixed(2)}</p>
@@ -184,7 +189,8 @@ export default function OrderCart({
                   </p>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>

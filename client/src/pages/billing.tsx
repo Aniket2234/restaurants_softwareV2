@@ -28,6 +28,7 @@ interface OrderItem {
   quantity: number;
   notes?: string;
   isFromDatabase?: boolean;
+  isVeg?: boolean;
 }
 
 export default function BillingPage() {
@@ -80,6 +81,7 @@ export default function BillingPage() {
         quantity: item.quantity,
         notes: item.notes || undefined,
         isFromDatabase: true,
+        isVeg: item.isVeg,
       }));
       
       setOrderItems(formattedItems);
@@ -217,6 +219,7 @@ export default function BillingPage() {
           quantity: 1,
           notes: undefined,
           isFromDatabase: false,
+          isVeg: menuItem.isVeg,
         },
       ]);
     }
@@ -323,6 +326,10 @@ export default function BillingPage() {
         return item;
       });
       setOrderItems(updatedItems);
+      
+      if (currentTableId) {
+        navigate("/tables");
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -365,6 +372,10 @@ export default function BillingPage() {
         return item;
       });
       setOrderItems(updatedItems);
+      
+      if (currentTableId) {
+        navigate("/tables");
+      }
     } catch (error) {
       toast({
         title: "Error",
