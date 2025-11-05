@@ -60,3 +60,8 @@
 [x] 60. Merged completed orders into history section so they persist after checkout
 [x] 61. Updated WebSocket handlers to invalidate completed orders cache on order updates
 [x] 62. Successfully verified Kitchen Display now retains orders in history after checkout
+[x] 63. Updated Kitchen Display to show paid orders as "Completed and Paid" instead of "Served"
+[x] 64. Modified timer to stop at completion time for paid orders (freezes at checkout time)
+[x] 65. Changed paid order styling to blue border/background to distinguish from served orders
+[x] 66. Added isPaid flag to KitchenOrderCard component to check order status
+[x] 67. Updated timer logic to freeze when order is completed/paid instead of continuing to count

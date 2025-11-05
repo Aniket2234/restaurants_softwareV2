@@ -235,6 +235,7 @@ export default function KitchenPage() {
                     <KitchenOrderCard
                       key={order.id}
                       orderId={order.id}
+                      order={order}
                       tableNumber={tableNumber}
                       orderTime={new Date(order.createdAt)}
                       items={items}
@@ -257,6 +258,7 @@ export default function KitchenPage() {
                     <KitchenOrderCard
                       key={order.id}
                       orderId={order.id}
+                      order={order}
                       tableNumber={tableNumber}
                       orderTime={new Date(order.createdAt)}
                       items={items}
@@ -277,6 +279,7 @@ export default function KitchenPage() {
 
 interface KitchenOrderCardProps {
   orderId: string;
+  order: Order;
   tableNumber: string;
   orderTime: Date;
   items: DBOrderItem[];
@@ -293,6 +296,7 @@ const statusConfig = {
 
 function KitchenOrderCard({
   orderId,
+  order,
   tableNumber,
   orderTime,
   items,
@@ -301,8 +305,16 @@ function KitchenOrderCard({
   isHistory = false,
 }: KitchenOrderCardProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
+  const isPaid = order.status === "paid" || order.status === "completed";
+  const completedTime = order.completedAt ? new Date(order.completedAt) : null;
 
   useEffect(() => {
+    if (isPaid && completedTime) {
+      const elapsed = Math.floor((completedTime.getTime() - orderTime.getTime()) / 1000);
+      setElapsedTime(elapsed);
+      return;
+    }
+
     const updateTime = () => {
       const elapsed = Math.floor((Date.now() - orderTime.getTime()) / 1000);
       setElapsedTime(elapsed);
@@ -311,7 +323,7 @@ function KitchenOrderCard({
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [orderTime]);
+  }, [orderTime, isPaid, completedTime]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -340,13 +352,13 @@ function KitchenOrderCard({
     <div
       className={cn(
         "bg-card rounded-lg border-2 overflow-hidden",
-        allServed ? "border-purple-500 bg-purple-500/10" : statusConfig[status].color
+        isPaid ? "border-blue-500 bg-blue-500/10" : allServed ? "border-purple-500 bg-purple-500/10" : statusConfig[status].color
       )}
       data-testid={`kds-order-${orderId}`}
     >
       <div className={cn(
         "p-3 text-white",
-        allServed ? "bg-purple-500" : statusConfig[status].color
+        isPaid ? "bg-blue-500" : allServed ? "bg-purple-500" : statusConfig[status].color
       )}>
         <div className="flex justify-between items-start">
           <div>
@@ -443,8 +455,11 @@ function KitchenOrderCard({
           </div>
         )}
         {isHistory && (
-          <div className="flex-1 text-center py-2 font-semibold text-purple-600 dark:text-purple-400">
-            ✓ Served - In History
+          <div className={cn(
+            "flex-1 text-center py-2 font-semibold",
+            isPaid ? "text-blue-600 dark:text-blue-400" : "text-purple-600 dark:text-purple-400"
+          )}>
+            {isPaid ? "✓ Completed and Paid" : "✓ Served - In History"}
           </div>
         )}
       </div>
