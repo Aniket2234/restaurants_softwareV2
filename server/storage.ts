@@ -15,6 +15,8 @@ import {
   type InsertInventoryItem,
   type Invoice,
   type InsertInvoice,
+  type Reservation,
+  type InsertReservation,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -72,6 +74,13 @@ export interface IStorage {
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
   deleteInvoice(id: string): Promise<boolean>;
+
+  getReservations(): Promise<Reservation[]>;
+  getReservation(id: string): Promise<Reservation | undefined>;
+  getReservationsByTable(tableId: string): Promise<Reservation[]>;
+  createReservation(reservation: InsertReservation): Promise<Reservation>;
+  updateReservation(id: string, reservation: Partial<InsertReservation>): Promise<Reservation | undefined>;
+  deleteReservation(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -83,6 +92,7 @@ export class MemStorage implements IStorage {
   private orderItems: Map<string, OrderItem>;
   private inventoryItems: Map<string, InventoryItem>;
   private invoices: Map<string, Invoice>;
+  private reservations: Map<string, Reservation>;
 
   constructor() {
     this.users = new Map();
@@ -93,6 +103,7 @@ export class MemStorage implements IStorage {
     this.orderItems = new Map();
     this.inventoryItems = new Map();
     this.invoices = new Map();
+    this.reservations = new Map();
     this.seedData();
   }
 
@@ -526,6 +537,60 @@ export class MemStorage implements IStorage {
 
   async deleteInvoice(id: string): Promise<boolean> {
     return this.invoices.delete(id);
+  }
+
+  async getReservations(): Promise<Reservation[]> {
+    return Array.from(this.reservations.values()).sort((a, b) => 
+      new Date(a.timeSlot).getTime() - new Date(b.timeSlot).getTime()
+    );
+  }
+
+  async getReservation(id: string): Promise<Reservation | undefined> {
+    return this.reservations.get(id);
+  }
+
+  async getReservationsByTable(tableId: string): Promise<Reservation[]> {
+    return Array.from(this.reservations.values()).filter(
+      (r) => r.tableId === tableId && r.status === "active"
+    );
+  }
+
+  async createReservation(insertReservation: InsertReservation): Promise<Reservation> {
+    const id = randomUUID();
+    const reservation: Reservation = {
+      id,
+      tableId: insertReservation.tableId,
+      customerName: insertReservation.customerName,
+      customerPhone: insertReservation.customerPhone,
+      numberOfPeople: insertReservation.numberOfPeople,
+      timeSlot: insertReservation.timeSlot,
+      notes: insertReservation.notes ?? null,
+      status: insertReservation.status ?? "active",
+      createdAt: new Date(),
+    };
+    this.reservations.set(id, reservation);
+    return reservation;
+  }
+
+  async updateReservation(id: string, reservationData: Partial<InsertReservation>): Promise<Reservation | undefined> {
+    const existing = this.reservations.get(id);
+    if (!existing) return undefined;
+    const updated: Reservation = {
+      ...existing,
+      tableId: reservationData.tableId ?? existing.tableId,
+      customerName: reservationData.customerName ?? existing.customerName,
+      customerPhone: reservationData.customerPhone ?? existing.customerPhone,
+      numberOfPeople: reservationData.numberOfPeople ?? existing.numberOfPeople,
+      timeSlot: reservationData.timeSlot ?? existing.timeSlot,
+      notes: reservationData.notes !== undefined ? reservationData.notes : existing.notes,
+      status: reservationData.status ?? existing.status,
+    };
+    this.reservations.set(id, updated);
+    return updated;
+  }
+
+  async deleteReservation(id: string): Promise<boolean> {
+    return this.reservations.delete(id);
   }
 }
 

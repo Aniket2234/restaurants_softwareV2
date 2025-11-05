@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import AppHeader from "@/components/AppHeader";
 import TableCard from "@/components/TableCard";
+import ReservationDialog from "@/components/ReservationDialog";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Table, Order, Floor } from "@shared/schema";
+import type { Table, Order, Floor, Reservation } from "@shared/schema";
 
 interface TableWithOrder extends Table {
   orderStartTime?: string | null;
@@ -44,6 +45,8 @@ export default function TablesPage() {
   const [showAddTableDialog, setShowAddTableDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editMode, setEditMode] = useState<"floors" | "tables">("floors");
+  const [showReservationDialog, setShowReservationDialog] = useState(false);
+  const [selectedTableForReservation, setSelectedTableForReservation] = useState<string | null>(null);
   
   const [floorName, setFloorName] = useState("");
   const [tableNumber, setTableNumber] = useState("");
@@ -60,6 +63,10 @@ export default function TablesPage() {
 
   const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+  });
+
+  const { data: reservations = [] } = useQuery<Reservation[]>({
+    queryKey: ["/api/reservations"],
   });
 
   const isLoading = tablesLoading || floorsLoading;
@@ -176,11 +183,22 @@ export default function TablesPage() {
     const floor = floors.find((f) => f.id === table.floorId);
     const floorName = floor?.name || "";
 
+    if (table.status === "reserved") {
+      setSelectedTableForReservation(id);
+      setShowReservationDialog(true);
+      return;
+    }
+
     if (table.status === "free") {
       navigate(`/billing?tableId=${table.id}&tableNumber=${table.tableNumber}&floorName=${encodeURIComponent(floorName)}&type=dine-in`);
     } else if (table.currentOrderId) {
       navigate(`/billing?tableId=${table.id}&tableNumber=${table.tableNumber}&floorName=${encodeURIComponent(floorName)}&orderId=${table.currentOrderId}&type=dine-in`);
     }
+  };
+
+  const handleReservationClick = () => {
+    setSelectedTableForReservation(null);
+    setShowReservationDialog(true);
   };
 
   const handleToggleServed = async (tableId: string) => {
@@ -275,7 +293,11 @@ export default function TablesPage() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <AppHeader title="Table Management" showSearch={false} />
+      <AppHeader 
+        title="Table Management" 
+        showSearch={false} 
+        onReservationClick={handleReservationClick}
+      />
 
       <div className="p-6 border-b border-border bg-muted/30">
         <div className="flex items-center justify-between">
@@ -599,6 +621,17 @@ export default function TablesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ReservationDialog 
+        open={showReservationDialog}
+        onOpenChange={(open) => {
+          setShowReservationDialog(open);
+          if (!open) {
+            setSelectedTableForReservation(null);
+          }
+        }}
+        selectedTableId={selectedTableForReservation}
+      />
     </div>
   );
 }

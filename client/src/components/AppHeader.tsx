@@ -4,7 +4,8 @@ import {
   ShoppingCart,
   Table,
   MonitorPlay,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +16,13 @@ import { cn } from "@/lib/utils";
 interface AppHeaderProps {
   title?: string;
   showSearch?: boolean;
+  onReservationClick?: () => void;
 }
 
 export default function AppHeader({
   title = "Restaurant POS",
   showSearch = true,
+  onReservationClick,
 }: AppHeaderProps) {
   const [location, setLocation] = useLocation();
   const { toggleSidebar } = useSidebar();
@@ -105,6 +108,19 @@ export default function AppHeader({
                 <Search className="h-5 w-5 text-gray-600 dark:text-gray-300" />
               </Button>
             )}
+
+            {/* Reservation Button */}
+            <Button
+              variant="ghost"
+              onClick={onReservationClick}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+              data-testid="button-reservation"
+            >
+              <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm font-medium hidden sm:inline text-gray-600 dark:text-gray-300">
+                Reservation
+              </span>
+            </Button>
 
             {/* Main Navigation Buttons */}
             {mainNavButtons.map((button) => {

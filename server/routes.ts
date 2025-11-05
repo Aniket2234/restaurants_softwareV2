@@ -10,6 +10,7 @@ import {
   insertOrderItemSchema,
   insertInventoryItemSchema,
   insertInvoiceSchema,
+  insertReservationSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -518,6 +519,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Invoice not found" });
     }
     broadcastUpdate("invoice_deleted", { id: req.params.id });
+    res.json({ success: true });
+  });
+
+  app.get("/api/reservations", async (req, res) => {
+    const reservations = await storage.getReservations();
+    res.json(reservations);
+  });
+
+  app.get("/api/reservations/:id", async (req, res) => {
+    const reservation = await storage.getReservation(req.params.id);
+    if (!reservation) {
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+    res.json(reservation);
+  });
+
+  app.get("/api/reservations/table/:tableId", async (req, res) => {
+    const reservations = await storage.getReservationsByTable(req.params.tableId);
+    res.json(reservations);
+  });
+
+  app.post("/api/reservations", async (req, res) => {
+    const result = insertReservationSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    
+    const existingReservations = await storage.getReservationsByTable(result.data.tableId);
+    if (existingReservations.length > 0) {
+      return res.status(409).json({ error: "This table already has an active reservation" });
+    }
+    
+    const reservation = await storage.createReservation(result.data);
+    const table = await storage.getTable(reservation.tableId);
+    if (table && table.status === "free") {
+      const updatedTable = await storage.updateTableStatus(reservation.tableId, "reserved");
+      if (updatedTable) {
+        broadcastUpdate("table_updated", updatedTable);
+      }
+    }
+    broadcastUpdate("reservation_created", reservation);
+    res.json(reservation);
+  });
+
+  app.patch("/api/reservations/:id", async (req, res) => {
+    const existingReservation = await storage.getReservation(req.params.id);
+    if (!existingReservation) {
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+    
+    const oldTableId = existingReservation.tableId;
+    const newTableId = req.body.tableId || oldTableId;
+    const tableChanged = oldTableId !== newTableId;
+    
+    if (tableChanged) {
+      const newTableReservations = await storage.getReservationsByTable(newTableId);
+      if (newTableReservations.length > 0) {
+        return res.status(409).json({ error: "The destination table already has an active reservation" });
+      }
+    }
+    
+    const reservation = await storage.updateReservation(req.params.id, req.body);
+    if (!reservation) {
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+    
+    if (tableChanged) {
+      const oldTableReservations = await storage.getReservationsByTable(oldTableId);
+      if (oldTableReservations.length === 0) {
+        const oldTable = await storage.getTable(oldTableId);
+        if (oldTable && oldTable.status === "reserved" && !oldTable.currentOrderId) {
+          const updatedOldTable = await storage.updateTableStatus(oldTableId, "free");
+          if (updatedOldTable) {
+            broadcastUpdate("table_updated", updatedOldTable);
+          }
+        }
+      }
+      
+      const newTable = await storage.getTable(newTableId);
+      if (newTable && newTable.status === "free") {
+        const updatedNewTable = await storage.updateTableStatus(newTableId, "reserved");
+        if (updatedNewTable) {
+          broadcastUpdate("table_updated", updatedNewTable);
+        }
+      }
+    }
+    
+    if (req.body.status === "cancelled") {
+      const tableReservations = await storage.getReservationsByTable(reservation.tableId);
+      if (tableReservations.length === 0) {
+        const table = await storage.getTable(reservation.tableId);
+        if (table && table.status === "reserved" && !table.currentOrderId) {
+          const updatedTable = await storage.updateTableStatus(reservation.tableId, "free");
+          if (updatedTable) {
+            broadcastUpdate("table_updated", updatedTable);
+          }
+        }
+      }
+    }
+    
+    broadcastUpdate("reservation_updated", reservation);
+    res.json(reservation);
+  });
+
+  app.delete("/api/reservations/:id", async (req, res) => {
+    const reservation = await storage.getReservation(req.params.id);
+    if (!reservation) {
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+    const success = await storage.deleteReservation(req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: "Failed to delete reservation" });
+    }
+    const tableReservations = await storage.getReservationsByTable(reservation.tableId);
+    if (tableReservations.length === 0) {
+      const table = await storage.getTable(reservation.tableId);
+      if (table && table.status === "reserved" && !table.currentOrderId) {
+        const updatedTable = await storage.updateTableStatus(reservation.tableId, "free");
+        if (updatedTable) {
+          broadcastUpdate("table_updated", updatedTable);
+        }
+      }
+    }
+    broadcastUpdate("reservation_deleted", { id: req.params.id });
     res.json({ success: true });
   });
 

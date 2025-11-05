@@ -118,6 +118,11 @@ export default function TableCard({
   
   return (
     <div className="relative flex flex-col items-center">
+      {status === "reserved" && (
+        <div className="absolute -top-1 -right-1 z-10 bg-[#0075ff] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md border-2 border-white">
+          R
+        </div>
+      )}
       <button
         onClick={handleClick}
         data-testid={`table-${id}`}
@@ -131,12 +136,18 @@ export default function TableCard({
             "w-16 h-16 rounded-full border-2 flex items-center justify-center transition-all",
             config.circleColor,
             config.circleBorder,
+            status !== "free" && "border-black",
             status === "free" && "text-black"
           )}>
-            <span className={cn(
-              "text-2xl font-semibold",
-              status === "free" ? "text-black" : "text-white"
-            )}>{tableNumber}</span>
+            <span 
+              className={cn(
+                "text-2xl font-semibold",
+                status === "free" ? "text-black" : "text-white"
+              )}
+              style={status !== "free" ? {
+                textShadow: '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
+              } : {}}
+            >{tableNumber}</span>
           </div>
           <div className="text-center w-full">
             <p className="text-xs font-semibold uppercase text-black">{config.label}</p>
