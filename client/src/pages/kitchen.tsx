@@ -8,7 +8,12 @@ import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Order, OrderItem as DBOrderItem, Table } from "@shared/schema";
 
-const kitchenTimerStore = new Map<string, { startTime: number, pausedAt: number | null }>();
+const kitchenTimerStore = new Map<string, { 
+  startTime: number, 
+  pausedAt: number | null,
+  wasCompleted: boolean,
+  itemIds: string[]
+}>();
 
 interface OrderWithDetails {
   order: Order;
@@ -314,32 +319,35 @@ function KitchenOrderCard({
   const allReadyOrServed = items.every(item => item.status === "ready" || item.status === "served");
 
   const itemCount = items.length;
-  const itemsKey = items.map(i => i.id).sort().join(',');
+  const currentItemIds = items.map(i => i.id).sort();
   
   if (!kitchenTimerStore.has(orderId)) {
     kitchenTimerStore.set(orderId, {
-      startTime: Date.now(),
-      pausedAt: null
+      startTime: orderTime.getTime(),
+      pausedAt: null,
+      wasCompleted: false,
+      itemIds: currentItemIds
     });
   }
 
   const orderTimer = kitchenTimerStore.get(orderId)!;
   
-  const prevItemsKeyRef = useRef<string>(itemsKey);
+  const hasNewItems = currentItemIds.some(id => !orderTimer.itemIds.includes(id));
   
-  if (prevItemsKeyRef.current !== itemsKey && items.length > 0) {
-    const prevCount = prevItemsKeyRef.current.split(',').filter(Boolean).length;
-    if (items.length > prevCount) {
-      orderTimer.startTime = Date.now();
-      orderTimer.pausedAt = null;
-    }
-    prevItemsKeyRef.current = itemsKey;
+  if (hasNewItems && orderTimer.wasCompleted) {
+    orderTimer.startTime = Date.now();
+    orderTimer.pausedAt = null;
+    orderTimer.wasCompleted = false;
+    orderTimer.itemIds = currentItemIds;
+  } else if (hasNewItems) {
+    orderTimer.itemIds = currentItemIds;
   }
 
   useEffect(() => {
     if (isPaid && completedTime) {
       const elapsed = Math.floor((completedTime.getTime() - orderTime.getTime()) / 1000);
       setElapsedTime(elapsed);
+      orderTimer.wasCompleted = true;
       return;
     }
 
@@ -348,6 +356,7 @@ function KitchenOrderCard({
         orderTimer.pausedAt = Math.floor((Date.now() - orderTimer.startTime) / 1000);
       }
       setElapsedTime(orderTimer.pausedAt);
+      orderTimer.wasCompleted = true;
       return;
     }
 
@@ -361,7 +370,7 @@ function KitchenOrderCard({
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [orderTime, isPaid, completedTime, allReadyOrServed, itemsKey]);
+  }, [orderTime, isPaid, completedTime, allReadyOrServed, currentItemIds.join(',')]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
