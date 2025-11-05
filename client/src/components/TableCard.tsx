@@ -126,9 +126,6 @@ export default function TableCard({
           config.borderColor
         )}
       >
-        <div className="absolute top-1 left-1 z-10 bg-gray-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md">
-          {seats}
-        </div>
         {status === "reserved" && (
           <div className="absolute top-1 right-1 z-10 bg-[#0075ff] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow-md border-2 border-white">
             R
