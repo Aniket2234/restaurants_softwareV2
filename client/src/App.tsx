@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 import NotFound from "@/pages/not-found";
 import LoginPage from "@/pages/login";
@@ -115,6 +116,8 @@ function Router() {
 }
 
 function App() {
+  useWebSocket();
+  
   const style = {
     "--sidebar-width": "16rem",
     "--sidebar-width-icon": "3rem",

@@ -43,3 +43,6 @@
 [x] 43. Fixed infinite loop in Tables page by converting useState to useMemo
 [x] 44. Added comprehensive logging on client and server to track WebSocket messages and query invalidations
 [x] 45. Added server-side logging for order item creation and KOT sending to debug real-time updates
+[x] 46. CRITICAL FIX: Moved WebSocket connection from page level to App level to maintain connection across all pages
+[x] 47. WebSocket now stays connected globally so Kitchen Display receives broadcasts even when user is on POS page
+[x] 48. Fixed "Broadcasting to 0 clients" issue - WebSocket client count now maintained at all times

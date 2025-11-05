@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Clock, Check, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useWebSocket } from "@/hooks/use-websocket";
 import type { Order, OrderItem as DBOrderItem, Table } from "@shared/schema";
 
 interface OrderWithDetails {
@@ -16,7 +15,6 @@ interface OrderWithDetails {
 }
 
 export default function KitchenPage() {
-  useWebSocket();
   const [showHistory, setShowHistory] = useState(false);
   
   const { data: activeOrders = [] } = useQuery<Order[]>({

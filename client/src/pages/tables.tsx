@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Table, Order, Floor, Reservation } from "@shared/schema";
 
@@ -35,7 +34,6 @@ interface TableWithOrder extends Table {
 export default function TablesPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  useWebSocket();
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [selectedTable, setSelectedTable] = useState<TableWithOrder | null>(null);
   const [orderDetails, setOrderDetails] = useState<any[]>([]);
