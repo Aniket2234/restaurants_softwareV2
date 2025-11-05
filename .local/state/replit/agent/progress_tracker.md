@@ -50,3 +50,6 @@
 [x] 50. Reconfigured workflow with correct webview output type and port 5000
 [x] 51. Successfully restarted application - now running on port 5000
 [x] 52. Verified all migration steps are complete and application is fully operational
+[x] 53. Reorganized Tables page navbar - moved Add Floor, Add Table, and Edit buttons into hamburger menu
+[x] 54. Positioned Delivery Order button to the left of hamburger menu on the right side
+[x] 55. Added DropdownMenu component with proper icons and data-testid attributes for all menu items

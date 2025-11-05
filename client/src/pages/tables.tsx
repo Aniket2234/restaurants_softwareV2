@@ -5,7 +5,7 @@ import AppHeader from "@/components/AppHeader";
 import TableCard from "@/components/TableCard";
 import ReservationDialog from "@/components/ReservationDialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Menu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Table, Order, Floor, Reservation } from "@shared/schema";
@@ -341,44 +347,48 @@ export default function TablesPage() {
           <div className="flex gap-2">
             <Button 
               variant="outline" 
-              onClick={() => {
-                setShowAddFloorDialog(true);
-              }}
-              data-testid="button-add-floor"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Floor
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setSelectedFloorId(floors.length > 0 ? floors[0].id : "");
-                setShowAddTableDialog(true);
-              }}
-              data-testid="button-add-table"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Table
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setEditMode("floors");
-                setShowEditDialog(true);
-              }}
-              data-testid="button-edit"
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            <Button 
-              variant="outline" 
               onClick={() => navigate("/billing?type=delivery")}
               data-testid="button-delivery-order"
             >
               <Plus className="h-4 w-4 mr-2" />
               Delivery Order
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" data-testid="button-menu">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => setShowAddFloorDialog(true)}
+                  data-testid="menu-add-floor"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Floor
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => {
+                    setSelectedFloorId(floors.length > 0 ? floors[0].id : "");
+                    setShowAddTableDialog(true);
+                  }}
+                  data-testid="menu-add-table"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Table
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => {
+                    setEditMode("floors");
+                    setShowEditDialog(true);
+                  }}
+                  data-testid="menu-edit"
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Floor/Table
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
