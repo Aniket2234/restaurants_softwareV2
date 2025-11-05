@@ -163,7 +163,7 @@ export default function ReservationDialog({
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
       numberOfPeople: parseInt(numberOfPeople) || 2,
-      timeSlot: new Date(timeSlot).toISOString(),
+      timeSlot: new Date(timeSlot),
       notes: notes.trim() || null,
       status: "active",
     };
