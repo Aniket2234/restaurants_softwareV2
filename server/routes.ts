@@ -276,6 +276,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
+
+    if (order.tableId) {
+      await storage.updateTableStatus(order.tableId, "preparing");
+      const updatedTable = await storage.getTable(order.tableId);
+      if (updatedTable) {
+        broadcastUpdate("table_updated", updatedTable);
+      }
+    }
+
     broadcastUpdate("order_updated", order);
     res.json({ order, shouldPrint: result.data.print });
   });
