@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Clock, Check, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Order, OrderItem as DBOrderItem, Table } from "@shared/schema";
+
+const kitchenTimerStore = new Map<string, { startTime: number, pausedAt: number | null }>();
 
 interface OrderWithDetails {
   order: Order;
@@ -305,39 +307,34 @@ function KitchenOrderCard({
   isHistory = false,
 }: KitchenOrderCardProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [restartTime, setRestartTime] = useState<Date | null>(null);
-  const [pausedElapsed, setPausedElapsed] = useState<number | null>(null);
-  const [previousItemCount, setPreviousItemCount] = useState(items.length);
-  const [wasPaused, setWasPaused] = useState(false);
   
   const isPaid = order.status === "paid" || order.status === "completed";
   const completedTime = order.completedAt ? new Date(order.completedAt) : null;
   const allServed = items.every(item => item.status === "served");
   const allReadyOrServed = items.every(item => item.status === "ready" || item.status === "served");
-  const isPaused = allReadyOrServed && !isPaid;
 
-  useEffect(() => {
-    if (items.length > previousItemCount) {
-      setRestartTime(new Date());
-      setPausedElapsed(null);
-      setWasPaused(false);
-    }
-    setPreviousItemCount(items.length);
-  }, [items.length, previousItemCount]);
+  const itemCount = items.length;
+  const itemsKey = items.map(i => i.id).sort().join(',');
+  
+  if (!kitchenTimerStore.has(orderId)) {
+    kitchenTimerStore.set(orderId, {
+      startTime: Date.now(),
+      pausedAt: null
+    });
+  }
 
-  useEffect(() => {
-    if (isPaused && !wasPaused) {
-      const baseTime = restartTime || orderTime;
-      const elapsed = Math.floor((Date.now() - baseTime.getTime()) / 1000);
-      setPausedElapsed(elapsed);
-      setWasPaused(true);
+  const orderTimer = kitchenTimerStore.get(orderId)!;
+  
+  const prevItemsKeyRef = useRef<string>(itemsKey);
+  
+  if (prevItemsKeyRef.current !== itemsKey && items.length > 0) {
+    const prevCount = prevItemsKeyRef.current.split(',').filter(Boolean).length;
+    if (items.length > prevCount) {
+      orderTimer.startTime = Date.now();
+      orderTimer.pausedAt = null;
     }
-    
-    if (!isPaused && wasPaused) {
-      setPausedElapsed(null);
-      setWasPaused(false);
-    }
-  }, [isPaused, wasPaused, restartTime, orderTime]);
+    prevItemsKeyRef.current = itemsKey;
+  }
 
   useEffect(() => {
     if (isPaid && completedTime) {
@@ -346,21 +343,25 @@ function KitchenOrderCard({
       return;
     }
 
-    if (isPaused && pausedElapsed !== null) {
-      setElapsedTime(pausedElapsed);
+    if (allReadyOrServed) {
+      if (orderTimer.pausedAt === null) {
+        orderTimer.pausedAt = Math.floor((Date.now() - orderTimer.startTime) / 1000);
+      }
+      setElapsedTime(orderTimer.pausedAt);
       return;
     }
 
+    orderTimer.pausedAt = null;
+
     const updateTime = () => {
-      const baseTime = restartTime || orderTime;
-      const elapsed = Math.floor((Date.now() - baseTime.getTime()) / 1000);
+      const elapsed = Math.floor((Date.now() - orderTimer.startTime) / 1000);
       setElapsedTime(elapsed);
     };
 
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [orderTime, isPaid, completedTime, isPaused, pausedElapsed, restartTime]);
+  }, [orderTime, isPaid, completedTime, allReadyOrServed, itemsKey]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

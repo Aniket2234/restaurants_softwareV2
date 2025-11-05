@@ -90,3 +90,10 @@
 [x] 90. Fixed Table Card timer to start when table becomes "occupied" instead of just "preparing"
 [x] 91. Table timer now shows on all active statuses: occupied, preparing, ready, and served
 [x] 92. Timer on table card now counts from when order is created (table occupied) not when cooking starts
+[x] 93. MAJOR FIX: Created module-level kitchenTimerStore Map for Kitchen Display timers
+[x] 94. Kitchen Display timer now completely independent from Table timer
+[x] 95. Timer state persists across page navigation using module-level storage
+[x] 96. Table timer: counts from order creation time (orderTime)
+[x] 97. Kitchen timer: counts from when KOT is sent and resets when new items added
+[x] 98. Paused timer values now persist when navigating away and returning to Kitchen Display
+[x] 99. Fixed timer continuing issue - timers now stay paused when switching between sections
