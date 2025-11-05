@@ -305,8 +305,26 @@ function KitchenOrderCard({
   isHistory = false,
 }: KitchenOrderCardProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [readyTime, setReadyTime] = useState<number | null>(null);
+  const [restartTime, setRestartTime] = useState<Date | null>(null);
+  const [previousStatus, setPreviousStatus] = useState<string>(status);
+  
   const isPaid = order.status === "paid" || order.status === "completed";
   const completedTime = order.completedAt ? new Date(order.completedAt) : null;
+
+  useEffect(() => {
+    if (status === "ready" && previousStatus !== "ready") {
+      const elapsed = Math.floor((Date.now() - (restartTime || orderTime).getTime()) / 1000);
+      setReadyTime(elapsed);
+    }
+    
+    if (status !== "ready" && previousStatus === "ready") {
+      setRestartTime(new Date());
+      setReadyTime(null);
+    }
+    
+    setPreviousStatus(status);
+  }, [status, previousStatus, orderTime, restartTime]);
 
   useEffect(() => {
     if (isPaid && completedTime) {
@@ -315,15 +333,21 @@ function KitchenOrderCard({
       return;
     }
 
+    if (status === "ready" && readyTime !== null) {
+      setElapsedTime(readyTime);
+      return;
+    }
+
     const updateTime = () => {
-      const elapsed = Math.floor((Date.now() - orderTime.getTime()) / 1000);
+      const baseTime = restartTime || orderTime;
+      const elapsed = Math.floor((Date.now() - baseTime.getTime()) / 1000);
       setElapsedTime(elapsed);
     };
 
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [orderTime, isPaid, completedTime]);
+  }, [orderTime, isPaid, completedTime, status, readyTime, restartTime]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

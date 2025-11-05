@@ -74,3 +74,8 @@
 [x] 74. "Mark All Prepared" button now marks all items in that specific ticket as ready (regardless of current status)
 [x] 75. Both buttons only affect items within their specific ticket, not other tickets
 [x] 76. Successfully restarted application and verified Kitchen Display is working properly
+[x] 77. Implemented timer pause functionality - timer freezes when order status becomes "ready"
+[x] 78. Added timer restart from zero when new items are added to a ready order
+[x] 79. Timer now tracks status changes and stores the paused time when order is ready
+[x] 80. When order goes from "ready" back to "new/preparing" (due to new items), timer resets to 0:00
+[x] 81. Successfully tested and verified timer behavior with order status changes
