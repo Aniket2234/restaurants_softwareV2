@@ -22,3 +22,5 @@
 [x] 22. Updated table cards to show people icon with capacity in top left corner (without background)
 [x] 23. Set sidebar to be closed by default
 [x] 24. Made POS logo/title clickable to navigate to Dashboard
+[x] 25. Successfully migrated workflow configuration to use webview output type
+[x] 26. Verified application is running on port 5000 with all features working
