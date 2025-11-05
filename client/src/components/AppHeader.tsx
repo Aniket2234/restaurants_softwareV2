@@ -112,7 +112,14 @@ export default function AppHeader({
             {/* Reservation Button */}
             <Button
               variant="ghost"
-              onClick={onReservationClick}
+              onClick={() => {
+                if (location !== "/tables") {
+                  setLocation("/tables");
+                }
+                if (onReservationClick) {
+                  onReservationClick();
+                }
+              }}
               className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
               data-testid="button-reservation"
             >
