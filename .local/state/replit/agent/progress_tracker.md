@@ -53,3 +53,10 @@
 [x] 53. Reorganized Tables page navbar - moved Add Floor, Add Table, and Edit buttons into hamburger menu
 [x] 54. Positioned Delivery Order button to the left of hamburger menu on the right side
 [x] 55. Added DropdownMenu component with proper icons and data-testid attributes for all menu items
+[x] 56. Fixed Kitchen Display history section to show checked-out orders
+[x] 57. Added getCompletedOrders method to IStorage interface and MemStorage implementation
+[x] 58. Created new API endpoint /api/orders/completed to fetch paid/completed orders
+[x] 59. Updated Kitchen Display to query both active and completed orders
+[x] 60. Merged completed orders into history section so they persist after checkout
+[x] 61. Updated WebSocket handlers to invalidate completed orders cache on order updates
+[x] 62. Successfully verified Kitchen Display now retains orders in history after checkout

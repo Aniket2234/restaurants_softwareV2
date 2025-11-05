@@ -199,6 +199,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(orders);
   });
 
+  app.get("/api/orders/completed", async (req, res) => {
+    const orders = await storage.getCompletedOrders();
+    res.json(orders);
+  });
+
   app.get("/api/orders/:id", async (req, res) => {
     const order = await storage.getOrder(req.params.id);
     if (!order) {

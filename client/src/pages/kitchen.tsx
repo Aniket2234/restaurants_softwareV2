@@ -21,12 +21,26 @@ export default function KitchenPage() {
     queryKey: ["/api/orders/active"],
   });
 
+  const { data: completedOrders = [] } = useQuery<Order[]>({
+    queryKey: ["/api/orders/completed"],
+  });
+
   const { data: tables = [] } = useQuery<Table[]>({
     queryKey: ["/api/tables"],
   });
 
   const orderItemQueries = useQueries({
     queries: activeOrders.map((order) => ({
+      queryKey: ["/api/orders", order.id, "items"],
+      queryFn: async () => {
+        const res = await fetch(`/api/orders/${order.id}/items`);
+        return await res.json() as DBOrderItem[];
+      },
+    })),
+  });
+
+  const completedOrderItemQueries = useQueries({
+    queries: completedOrders.map((order) => ({
       queryKey: ["/api/orders", order.id, "items"],
       queryFn: async () => {
         const res = await fetch(`/api/orders/${order.id}/items`);
@@ -57,6 +71,28 @@ export default function KitchenPage() {
     });
   }, [activeOrders, orderItemQueries, tables]);
 
+  const completedOrdersWithDetails = useMemo(() => {
+    if (completedOrderItemQueries.some(q => q.isLoading)) {
+      return [];
+    }
+
+    return completedOrders.map((order, index) => {
+      const items = completedOrderItemQueries[index]?.data || [];
+      
+      let tableNumber = "";
+      if (order.tableId) {
+        const table = tables.find(t => t.id === order.tableId);
+        tableNumber = table?.tableNumber || "Unknown";
+      } else if (order.orderType === "delivery") {
+        tableNumber = "Delivery";
+      } else {
+        tableNumber = "Pickup";
+      }
+
+      return { order, items, tableNumber };
+    });
+  }, [completedOrders, completedOrderItemQueries, tables]);
+
   const { activeOrdersList, servedOrdersList } = useMemo(() => {
     const active = ordersWithDetails.filter(({ items }) => 
       !items.every(item => item.status === "served")
@@ -64,8 +100,9 @@ export default function KitchenPage() {
     const served = ordersWithDetails.filter(({ items }) => 
       items.every(item => item.status === "served")
     );
-    return { activeOrdersList: active, servedOrdersList: served };
-  }, [ordersWithDetails]);
+    const allCompleted = [...served, ...completedOrdersWithDetails];
+    return { activeOrdersList: active, servedOrdersList: allCompleted };
+  }, [ordersWithDetails, completedOrdersWithDetails]);
 
   const isLoading = orderItemQueries.some(q => q.isLoading);
 
@@ -76,6 +113,7 @@ export default function KitchenPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/completed"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
       queryClient.invalidateQueries({
         predicate: (query) =>
@@ -99,6 +137,7 @@ export default function KitchenPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/completed"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
       queryClient.invalidateQueries({
         predicate: (query) =>

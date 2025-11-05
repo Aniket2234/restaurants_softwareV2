@@ -42,9 +42,11 @@ export function useWebSocket() {
             case 'order_created':
             case 'order_updated':
             case 'order_completed':
+            case 'order_paid':
               console.log('[WebSocket] Invalidating order queries for order:', message.data?.id);
               queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
               queryClient.invalidateQueries({ queryKey: ['/api/orders/active'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/orders/completed'] });
               queryClient.invalidateQueries({ queryKey: ['/api/tables'] });
               queryClient.invalidateQueries({
                 predicate: (query) =>
@@ -66,6 +68,7 @@ export function useWebSocket() {
             case 'order_item_deleted':
               console.log('[WebSocket] Invalidating order items queries for orderId:', message.data?.orderId);
               queryClient.invalidateQueries({ queryKey: ['/api/orders/active'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/orders/completed'] });
               queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
               queryClient.invalidateQueries({ queryKey: ['/api/tables'] });
               queryClient.invalidateQueries({

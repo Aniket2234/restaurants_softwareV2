@@ -50,6 +50,7 @@ export interface IStorage {
   getOrder(id: string): Promise<Order | undefined>;
   getOrdersByTable(tableId: string): Promise<Order[]>;
   getActiveOrders(): Promise<Order[]>;
+  getCompletedOrders(): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
   updateOrderTotal(id: string, total: string): Promise<Order | undefined>;
@@ -336,6 +337,12 @@ export class MemStorage implements IStorage {
   async getActiveOrders(): Promise<Order[]> {
     return Array.from(this.orders.values()).filter(
       (o) => o.status === "sent_to_kitchen" || o.status === "ready_to_bill" || o.status === "billed"
+    );
+  }
+
+  async getCompletedOrders(): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(
+      (o) => o.status === "paid" || o.status === "completed"
     );
   }
 
