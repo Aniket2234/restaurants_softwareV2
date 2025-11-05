@@ -181,6 +181,12 @@ export default function TablesPage() {
     const table = tablesWithOrders.find((t) => t.id === id);
     if (!table) return;
 
+    if (isReservationMode) {
+      setSelectedTableForReservation(id);
+      setShowReservationDialog(true);
+      return;
+    }
+
     const floor = floors.find((f) => f.id === table.floorId);
     const floorName = floor?.name || "";
 
