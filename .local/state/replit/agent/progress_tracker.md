@@ -79,3 +79,8 @@
 [x] 79. Timer now tracks status changes and stores the paused time when order is ready
 [x] 80. When order goes from "ready" back to "new/preparing" (due to new items), timer resets to 0:00
 [x] 81. Successfully tested and verified timer behavior with order status changes
+[x] 82. Fixed timer to pause when all items are served and ticket moves to history
+[x] 83. Fixed timer to restart from zero when new items are added to a served ticket
+[x] 84. Timer now tracks item count changes to detect when new items are added
+[x] 85. Timer pauses for both ready and served states (allReadyOrServed check)
+[x] 86. Successfully verified timer stops in history section and restarts when KOT is resent with new items

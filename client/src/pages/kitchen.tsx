@@ -305,26 +305,33 @@ function KitchenOrderCard({
   isHistory = false,
 }: KitchenOrderCardProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [readyTime, setReadyTime] = useState<number | null>(null);
+  const [pausedTime, setPausedTime] = useState<number | null>(null);
   const [restartTime, setRestartTime] = useState<Date | null>(null);
-  const [previousStatus, setPreviousStatus] = useState<string>(status);
+  const [previousItemCount, setPreviousItemCount] = useState<number>(items.length);
   
   const isPaid = order.status === "paid" || order.status === "completed";
   const completedTime = order.completedAt ? new Date(order.completedAt) : null;
+  const allServed = items.every(item => item.status === "served");
+  const allReadyOrServed = items.every(item => item.status === "ready" || item.status === "served");
 
   useEffect(() => {
-    if (status === "ready" && previousStatus !== "ready") {
-      const elapsed = Math.floor((Date.now() - (restartTime || orderTime).getTime()) / 1000);
-      setReadyTime(elapsed);
-    }
-    
-    if (status !== "ready" && previousStatus === "ready") {
+    if (items.length > previousItemCount) {
       setRestartTime(new Date());
-      setReadyTime(null);
+      setPausedTime(null);
+    }
+    setPreviousItemCount(items.length);
+  }, [items.length, previousItemCount]);
+
+  useEffect(() => {
+    if (allReadyOrServed && pausedTime === null && !isPaid) {
+      const elapsed = Math.floor((Date.now() - (restartTime || orderTime).getTime()) / 1000);
+      setPausedTime(elapsed);
     }
     
-    setPreviousStatus(status);
-  }, [status, previousStatus, orderTime, restartTime]);
+    if (!allReadyOrServed && pausedTime !== null) {
+      setPausedTime(null);
+    }
+  }, [allReadyOrServed, pausedTime, orderTime, restartTime, isPaid]);
 
   useEffect(() => {
     if (isPaid && completedTime) {
@@ -333,8 +340,8 @@ function KitchenOrderCard({
       return;
     }
 
-    if (status === "ready" && readyTime !== null) {
-      setElapsedTime(readyTime);
+    if ((allReadyOrServed || allServed) && pausedTime !== null) {
+      setElapsedTime(pausedTime);
       return;
     }
 
@@ -347,7 +354,7 @@ function KitchenOrderCard({
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [orderTime, isPaid, completedTime, status, readyTime, restartTime]);
+  }, [orderTime, isPaid, completedTime, allReadyOrServed, allServed, pausedTime, restartTime]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -370,8 +377,6 @@ function KitchenOrderCard({
       }
     });
   };
-
-  const allServed = items.every(item => item.status === "served");
   
   return (
     <div
