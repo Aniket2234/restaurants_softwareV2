@@ -33,3 +33,5 @@
 [x] 33. Kitchen Display now updates automatically when items are added or removed from orders without manual refresh
 [x] 34. Fixed Kitchen Display not updating when KOT is resent - added specific order query invalidation
 [x] 35. Kitchen Display now updates in real-time when orders are resent to kitchen without manual refresh
+[x] 36. Fixed WebSocket query invalidation to use predicate for all order-related queries
+[x] 37. Kitchen Display now properly invalidates both order and order items queries when updates occur

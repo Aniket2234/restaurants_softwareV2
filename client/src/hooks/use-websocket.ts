@@ -44,7 +44,12 @@ export function useWebSocket() {
               queryClient.invalidateQueries({ queryKey: ['/api/orders/active'] });
               queryClient.invalidateQueries({ queryKey: ['/api/tables'] });
               if (message.data?.id) {
-                queryClient.invalidateQueries({ queryKey: ['/api/orders', message.data.id] });
+                queryClient.invalidateQueries({ 
+                  predicate: (query) => 
+                    Array.isArray(query.queryKey) && 
+                    query.queryKey[0] === '/api/orders' && 
+                    query.queryKey[1] === message.data.id 
+                });
               }
               break;
             case 'order_item_added':
@@ -54,7 +59,12 @@ export function useWebSocket() {
               queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
               queryClient.invalidateQueries({ queryKey: ['/api/tables'] });
               if (message.data?.orderId) {
-                queryClient.invalidateQueries({ queryKey: ['/api/orders', message.data.orderId] });
+                queryClient.invalidateQueries({ 
+                  predicate: (query) => 
+                    Array.isArray(query.queryKey) && 
+                    query.queryKey[0] === '/api/orders' && 
+                    query.queryKey[1] === message.data.orderId 
+                });
               }
               break;
             case 'menu_created':
