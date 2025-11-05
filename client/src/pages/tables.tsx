@@ -47,6 +47,7 @@ export default function TablesPage() {
   const [editMode, setEditMode] = useState<"floors" | "tables">("floors");
   const [showReservationDialog, setShowReservationDialog] = useState(false);
   const [selectedTableForReservation, setSelectedTableForReservation] = useState<string | null>(null);
+  const [isReservationMode, setIsReservationMode] = useState(false);
   
   const [floorName, setFloorName] = useState("");
   const [tableNumber, setTableNumber] = useState("");
@@ -197,6 +198,7 @@ export default function TablesPage() {
   };
 
   const handleReservationClick = () => {
+    setIsReservationMode(true);
     setSelectedTableForReservation(null);
     setShowReservationDialog(true);
   };
@@ -297,6 +299,7 @@ export default function TablesPage() {
         title="Table Management" 
         showSearch={false} 
         onReservationClick={handleReservationClick}
+        isReservationMode={isReservationMode}
       />
 
       <div className="p-6 border-b border-border bg-muted/30">
@@ -628,9 +631,13 @@ export default function TablesPage() {
           setShowReservationDialog(open);
           if (!open) {
             setSelectedTableForReservation(null);
+            setIsReservationMode(false);
           }
         }}
         selectedTableId={selectedTableForReservation}
+        onReservationComplete={() => {
+          setIsReservationMode(false);
+        }}
       />
     </div>
   );

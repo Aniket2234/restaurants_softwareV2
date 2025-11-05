@@ -10,6 +10,7 @@
 [x] 10. Fixed table reassignment functionality
 [x] 11. Added WebSocket broadcasting for real-time updates
 [x] 12. Prevented double-booking with proper validation
+[x] 13. Implemented Reservation button highlighting during reservation mode
 [x] 13. Configured workflow with proper webview output and port 5000
 [x] 14. Verified application is running successfully
 [x] 15. Confirmed all features are functional including Dashboard, POS, Tables, Menu, etc.

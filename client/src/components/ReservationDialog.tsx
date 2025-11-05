@@ -21,12 +21,14 @@ interface ReservationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedTableId?: string | null;
+  onReservationComplete?: () => void;
 }
 
 export default function ReservationDialog({ 
   open, 
   onOpenChange,
-  selectedTableId 
+  selectedTableId,
+  onReservationComplete 
 }: ReservationDialogProps) {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
@@ -79,6 +81,9 @@ export default function ReservationDialog({
       toast({ title: "Reservation created successfully" });
       resetForm();
       onOpenChange(false);
+      if (onReservationComplete) {
+        onReservationComplete();
+      }
     },
     onError: (error: any) => {
       toast({ 
@@ -104,6 +109,9 @@ export default function ReservationDialog({
       toast({ title: "Reservation updated successfully" });
       resetForm();
       onOpenChange(false);
+      if (onReservationComplete) {
+        onReservationComplete();
+      }
     },
     onError: (error: any) => {
       toast({ 

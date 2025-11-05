@@ -17,12 +17,14 @@ interface AppHeaderProps {
   title?: string;
   showSearch?: boolean;
   onReservationClick?: () => void;
+  isReservationMode?: boolean;
 }
 
 export default function AppHeader({
   title = "Restaurant POS",
   showSearch = true,
   onReservationClick,
+  isReservationMode = false,
 }: AppHeaderProps) {
   const [location, setLocation] = useLocation();
   const { toggleSidebar } = useSidebar();
@@ -120,11 +122,22 @@ export default function AppHeader({
                   onReservationClick();
                 }
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg transition-all",
+                isReservationMode 
+                  ? "bg-blue-100 dark:bg-blue-900 shadow-sm" 
+                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+              )}
               data-testid="button-reservation"
             >
-              <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-              <span className="text-sm font-medium hidden sm:inline text-gray-600 dark:text-gray-300">
+              <Calendar className={cn(
+                "h-4 w-4",
+                isReservationMode ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"
+              )} />
+              <span className={cn(
+                "text-sm font-medium hidden sm:inline",
+                isReservationMode ? "text-blue-900 dark:text-blue-100" : "text-gray-600 dark:text-gray-300"
+              )}>
                 Reservation
               </span>
             </Button>
