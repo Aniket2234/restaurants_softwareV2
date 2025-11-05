@@ -409,18 +409,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const order = await storage.getOrder(item.orderId);
     if (order && order.tableId) {
       const allItems = await storage.getOrderItems(item.orderId);
-      const allPreparing = allItems.every((i) => i.status === "preparing" || i.status === "ready");
-      const allReady = allItems.every((i) => i.status === "ready" || i.status === "served");
+      const hasNew = allItems.some((i) => i.status === "new");
+      const hasPreparing = allItems.some((i) => i.status === "preparing");
       const allServed = allItems.every((i) => i.status === "served");
+      const allReady = allItems.every((i) => i.status === "ready" || i.status === "served");
 
       let newTableStatus = null;
       if (allServed) {
         newTableStatus = "served";
         await storage.updateTableStatus(order.tableId, "served");
-      } else if (allReady) {
+      } else if (allReady && !hasNew && !hasPreparing) {
         newTableStatus = "ready";
         await storage.updateTableStatus(order.tableId, "ready");
-      } else if (allPreparing) {
+      } else if (hasNew || hasPreparing) {
         newTableStatus = "preparing";
         await storage.updateTableStatus(order.tableId, "preparing");
       }
