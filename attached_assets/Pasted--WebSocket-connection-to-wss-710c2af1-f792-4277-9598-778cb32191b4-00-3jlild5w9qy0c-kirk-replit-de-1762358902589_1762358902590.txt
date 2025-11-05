@@ -1,0 +1,96 @@
+ WebSocket connection to 'wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/?token=BiMZqvHocrQx' failed: 
+setupWebSocket @ client:536
+client:536 Uncaught (in promise) 
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+ Warning: Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render.
+    at TablesPage (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/src/pages/tables.tsx:48:24)
+    at Route (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=5ea3ddce:323:16)
+    at Switch (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=5ea3ddce:379:17)
+    at Router
+    at main
+    at div
+    at div
+    at Provider (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=5ea3ddce:38:15)
+    at TooltipProvider (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=5ea3ddce:61:5)
+    at SidebarProvider (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/src/components/ui/sidebar.tsx:59:3)
+    at Provider (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=5ea3ddce:38:15)
+    at TooltipProvider (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=5ea3ddce:61:5)
+    at QueryClientProvider (https://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=5ea3ddce:2805:3)
+    at App
+printWarning @ chunk-RPCDYKBN.js?v=5ea3ddce:521
+ [WebSocket] Connected successfully!
+ [WebSocket] Disconnected
+ [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+ [WebSocket] Connected successfully!
+ [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+ [WebSocket] Disconnected
+ [WebSocket] Connected successfully!
+ [WebSocket] Message received: table_updated Data: Object
+ [WebSocket] Invalidating tables queries
+ [WebSocket] Message received: order_item_updated Data: Object
+ [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+ [WebSocket] Message received: table_updated Data: Object
+ [WebSocket] Invalidating tables queries
+ [WebSocket] Message received: order_item_updated Data: Object
+ [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+ [WebSocket] Message received: table_updated Data: Object
+ [WebSocket] Invalidating tables queries
+ [WebSocket] Message received: order_item_updated Data: Object
+ [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+ [WebSocket] Message received: table_updated Data: Object
+ [WebSocket] Invalidating tables queries
+ [WebSocket] Message received: order_item_updated Data: Object
+ [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+ [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+ [WebSocket] Disconnected
+ [WebSocket] Connected successfully!
+ [WebSocket] Message received: table_updated Data: Object
+ [WebSocket] Invalidating tables queries
+ [WebSocket] Message received: order_item_updated Data: Object
+ [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+use-websocket.ts:34 [WebSocket] Message received: table_updated Data: Object
+use-websocket.ts:39 [WebSocket] Invalidating tables queries
+use-websocket.ts:34 [WebSocket] Message received: order_item_updated Data: Object
+use-websocket.ts:67 [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+use-websocket.ts:103 [WebSocket] Disconnected
+use-websocket.ts:23 [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+use-websocket.ts:28 [WebSocket] Connected successfully!
+use-websocket.ts:23 [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+use-websocket.ts:103 [WebSocket] Disconnected
+use-websocket.ts:28 [WebSocket] Connected successfully!
+use-websocket.ts:34 [WebSocket] Message received: table_updated Data: Object
+use-websocket.ts:39 [WebSocket] Invalidating tables queries
+use-websocket.ts:34 [WebSocket] Message received: order_item_updated Data: Object
+use-websocket.ts:67 [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+use-websocket.ts:34 [WebSocket] Message received: table_updated Data: Object
+use-websocket.ts:39 [WebSocket] Invalidating tables queries
+use-websocket.ts:34 [WebSocket] Message received: order_item_updated Data: Object
+use-websocket.ts:67 [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+use-websocket.ts:103 [WebSocket] Disconnected
+use-websocket.ts:23 [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+use-websocket.ts:28 [WebSocket] Connected successfully!
+use-websocket.ts:34 [WebSocket] Message received: table_updated Data: Object
+use-websocket.ts:39 [WebSocket] Invalidating tables queries
+use-websocket.ts:34 [WebSocket] Message received: order_item_updated Data: Object
+use-websocket.ts:67 [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+use-websocket.ts:34 [WebSocket] Message received: table_updated Data: Object
+use-websocket.ts:39 [WebSocket] Invalidating tables queries
+use-websocket.ts:34 [WebSocket] Message received: order_item_updated Data: Object
+use-websocket.ts:67 [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+use-websocket.ts:34 [WebSocket] Message received: table_updated Data: Object
+use-websocket.ts:39 [WebSocket] Invalidating tables queries
+use-websocket.ts:34 [WebSocket] Message received: order_item_updated Data: Object
+use-websocket.ts:67 [WebSocket] Invalidating order items queries for orderId: f97defd8-f7d7-44e4-a709-fc2c0bfb0875
+use-websocket.ts:23 [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+use-websocket.ts:103 [WebSocket] Disconnected
+use-websocket.ts:28 [WebSocket] Connected successfully!
+use-websocket.ts:23 [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+use-websocket.ts:103 [WebSocket] Disconnected
+use-websocket.ts:28 [WebSocket] Connected successfully!
+use-websocket.ts:103 [WebSocket] Disconnected
+use-websocket.ts:23 [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+use-websocket.ts:28 [WebSocket] Connected successfully!
+use-websocket.ts:23 [WebSocket] Attempting to connect to: wss://710c2af1-f792-4277-9598-778cb32191b4-00-3jlild5w9qy0c.kirk.replit.dev/api/ws
+use-websocket.ts:103 [WebSocket] Disconnected
+use-websocket.ts:28 [WebSocket] Connected successfully!
