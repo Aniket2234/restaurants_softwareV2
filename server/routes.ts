@@ -9,6 +9,7 @@ import {
   insertOrderSchema,
   insertOrderItemSchema,
   insertInventoryItemSchema,
+  insertInvoiceSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -19,6 +20,11 @@ const orderActionSchema = z.object({
 const checkoutSchema = z.object({
   paymentMode: z.string().optional(),
   print: z.boolean().optional().default(false),
+  splitPayments: z.array(z.object({
+    person: z.number(),
+    amount: z.number(),
+    paymentMode: z.string(),
+  })).optional(),
 });
 
 let wss: WebSocketServer;
@@ -307,18 +313,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: result.error });
     }
     
-    const order = await storage.checkoutOrder(req.params.id, result.data.paymentMode);
+    const order = await storage.getOrder(req.params.id);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    if (order.tableId) {
-      await storage.updateTableOrder(order.tableId, null);
-      await storage.updateTableStatus(order.tableId, "free");
+    const orderItems = await storage.getOrderItems(req.params.id);
+    
+    const subtotal = orderItems.reduce((sum, item) => 
+      sum + parseFloat(item.price) * item.quantity, 0
+    );
+    const tax = subtotal * 0.05;
+    const total = subtotal + tax;
+
+    if (result.data.splitPayments && result.data.splitPayments.length > 0) {
+      const splitSum = result.data.splitPayments.reduce((sum, split) => sum + split.amount, 0);
+      const tolerance = 0.01;
+      if (Math.abs(splitSum - total) > tolerance) {
+        return res.status(400).json({ 
+          error: "Split payment amounts must equal the total bill",
+          splitSum,
+          total 
+        });
+      }
+      for (const split of result.data.splitPayments) {
+        if (split.amount <= 0) {
+          return res.status(400).json({ error: "Split payment amounts must be positive" });
+        }
+      }
     }
 
-    broadcastUpdate("order_paid", order);
-    res.json({ order, shouldPrint: result.data.print });
+    const checkedOutOrder = await storage.checkoutOrder(req.params.id, result.data.paymentMode);
+    if (!checkedOutOrder) {
+      return res.status(500).json({ error: "Failed to checkout order" });
+    }
+
+    let tableInfo = null;
+    if (checkedOutOrder.tableId) {
+      tableInfo = await storage.getTable(checkedOutOrder.tableId);
+      await storage.updateTableOrder(checkedOutOrder.tableId, null);
+      await storage.updateTableStatus(checkedOutOrder.tableId, "free");
+    }
+
+    const invoiceCount = (await storage.getInvoices()).length;
+    const invoiceNumber = `INV-${String(invoiceCount + 1).padStart(4, '0')}`;
+
+    const invoiceItemsData = orderItems.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: parseFloat(item.price),
+      isVeg: item.isVeg,
+      notes: item.notes || undefined
+    }));
+
+    const invoice = await storage.createInvoice({
+      invoiceNumber,
+      orderId: checkedOutOrder.id,
+      tableNumber: tableInfo?.tableNumber || null,
+      floorName: tableInfo?.floorId ? (await storage.getFloor(tableInfo.floorId))?.name || null : null,
+      customerName: checkedOutOrder.customerName,
+      customerPhone: checkedOutOrder.customerPhone,
+      subtotal: subtotal.toFixed(2),
+      tax: tax.toFixed(2),
+      discount: "0",
+      total: total.toFixed(2),
+      paymentMode: result.data.paymentMode || "cash",
+      splitPayments: result.data.splitPayments ? JSON.stringify(result.data.splitPayments) : null,
+      status: "Paid",
+      items: JSON.stringify(invoiceItemsData),
+      notes: null,
+    });
+
+    broadcastUpdate("order_paid", checkedOutOrder);
+    broadcastUpdate("invoice_created", invoice);
+    res.json({ order: checkedOutOrder, invoice, shouldPrint: result.data.print });
   });
 
   app.patch("/api/order-items/:id/status", async (req, res) => {
@@ -402,6 +470,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Inventory item not found" });
     }
     res.json(item);
+  });
+
+  app.get("/api/invoices", async (req, res) => {
+    const invoices = await storage.getInvoices();
+    res.json(invoices);
+  });
+
+  app.get("/api/invoices/:id", async (req, res) => {
+    const invoice = await storage.getInvoice(req.params.id);
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+    res.json(invoice);
+  });
+
+  app.get("/api/invoices/number/:invoiceNumber", async (req, res) => {
+    const invoice = await storage.getInvoiceByNumber(req.params.invoiceNumber);
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+    res.json(invoice);
+  });
+
+  app.post("/api/invoices", async (req, res) => {
+    const result = insertInvoiceSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const invoice = await storage.createInvoice(result.data);
+    broadcastUpdate("invoice_created", invoice);
+    res.json(invoice);
+  });
+
+  app.patch("/api/invoices/:id", async (req, res) => {
+    const invoice = await storage.updateInvoice(req.params.id, req.body);
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+    broadcastUpdate("invoice_updated", invoice);
+    res.json(invoice);
+  });
+
+  app.delete("/api/invoices/:id", async (req, res) => {
+    const success = await storage.deleteInvoice(req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+    broadcastUpdate("invoice_deleted", { id: req.params.id });
+    res.json({ success: true });
   });
 
   const httpServer = createServer(app);

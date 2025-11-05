@@ -65,6 +65,7 @@ export const orders = pgTable("orders", {
   customerName: text("customer_name"),
   customerPhone: text("customer_phone"),
   customerAddress: text("customer_address"),
+  paymentMode: text("payment_mode"),
   waiterId: varchar("waiter_id"),
   deliveryPersonId: varchar("delivery_person_id"),
   expectedPickupTime: timestamp("expected_pickup_time"),
@@ -111,3 +112,28 @@ export const inventoryItems = pgTable("inventory_items", {
 export const insertInventoryItemSchema = createInsertSchema(inventoryItems).omit({ id: true });
 export type InsertInventoryItem = z.infer<typeof insertInventoryItemSchema>;
 export type InventoryItem = typeof inventoryItems.$inferSelect;
+
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  orderId: varchar("order_id").notNull(),
+  tableNumber: text("table_number"),
+  floorName: text("floor_name"),
+  customerName: text("customer_name"),
+  customerPhone: text("customer_phone"),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0"),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  paymentMode: text("payment_mode").notNull(),
+  splitPayments: text("split_payments"),
+  status: text("status").notNull().default("Paid"),
+  items: text("items").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;

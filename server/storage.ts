@@ -13,6 +13,8 @@ import {
   type InsertOrderItem,
   type InventoryItem,
   type InsertInventoryItem,
+  type Invoice,
+  type InsertInvoice,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -63,6 +65,13 @@ export interface IStorage {
   getInventoryItem(id: string): Promise<InventoryItem | undefined>;
   createInventoryItem(item: InsertInventoryItem): Promise<InventoryItem>;
   updateInventoryQuantity(id: string, quantity: string): Promise<InventoryItem | undefined>;
+
+  getInvoices(): Promise<Invoice[]>;
+  getInvoice(id: string): Promise<Invoice | undefined>;
+  getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
+  deleteInvoice(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -73,6 +82,7 @@ export class MemStorage implements IStorage {
   private orders: Map<string, Order>;
   private orderItems: Map<string, OrderItem>;
   private inventoryItems: Map<string, InventoryItem>;
+  private invoices: Map<string, Invoice>;
 
   constructor() {
     this.users = new Map();
@@ -82,6 +92,7 @@ export class MemStorage implements IStorage {
     this.orders = new Map();
     this.orderItems = new Map();
     this.inventoryItems = new Map();
+    this.invoices = new Map();
     this.seedData();
   }
 
@@ -328,6 +339,7 @@ export class MemStorage implements IStorage {
       customerName: insertOrder.customerName ?? null,
       customerPhone: insertOrder.customerPhone ?? null,
       customerAddress: insertOrder.customerAddress ?? null,
+      paymentMode: insertOrder.paymentMode ?? null,
       waiterId: insertOrder.waiterId ?? null,
       deliveryPersonId: insertOrder.deliveryPersonId ?? null,
       expectedPickupTime: insertOrder.expectedPickupTime ?? null,
@@ -386,6 +398,7 @@ export class MemStorage implements IStorage {
     const updated: Order = {
       ...order,
       status: "paid",
+      paymentMode: paymentMode ?? order.paymentMode,
       paidAt: new Date(),
       completedAt: new Date(),
     };
@@ -412,6 +425,7 @@ export class MemStorage implements IStorage {
       price: item.price,
       notes: item.notes ?? null,
       status: item.status ?? "new",
+      isVeg: item.isVeg ?? true,
     };
     this.orderItems.set(id, orderItem);
     return orderItem;
@@ -456,6 +470,62 @@ export class MemStorage implements IStorage {
     const updated: InventoryItem = { ...item, quantity };
     this.inventoryItems.set(id, updated);
     return updated;
+  }
+
+  async getInvoices(): Promise<Invoice[]> {
+    return Array.from(this.invoices.values()).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }
+
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    return this.invoices.get(id);
+  }
+
+  async getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined> {
+    return Array.from(this.invoices.values()).find((inv) => inv.invoiceNumber === invoiceNumber);
+  }
+
+  async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
+    const id = randomUUID();
+    const invoice: Invoice = {
+      id,
+      invoiceNumber: insertInvoice.invoiceNumber,
+      orderId: insertInvoice.orderId,
+      tableNumber: insertInvoice.tableNumber ?? null,
+      floorName: insertInvoice.floorName ?? null,
+      customerName: insertInvoice.customerName ?? null,
+      customerPhone: insertInvoice.customerPhone ?? null,
+      subtotal: insertInvoice.subtotal,
+      tax: insertInvoice.tax,
+      discount: insertInvoice.discount ?? "0",
+      total: insertInvoice.total,
+      paymentMode: insertInvoice.paymentMode,
+      splitPayments: insertInvoice.splitPayments ?? null,
+      status: insertInvoice.status ?? "Paid",
+      items: insertInvoice.items,
+      notes: insertInvoice.notes ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.invoices.set(id, invoice);
+    return invoice;
+  }
+
+  async updateInvoice(id: string, invoiceData: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+    const existing = this.invoices.get(id);
+    if (!existing) return undefined;
+    const updated: Invoice = {
+      ...existing,
+      ...invoiceData,
+      updatedAt: new Date(),
+    };
+    this.invoices.set(id, updated);
+    return updated;
+  }
+
+  async deleteInvoice(id: string): Promise<boolean> {
+    return this.invoices.delete(id);
   }
 }
 

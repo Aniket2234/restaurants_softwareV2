@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Send } from "lucide-react";
+import { Search, Send, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
@@ -38,7 +38,12 @@ export default function BillingPage() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showCheckoutDialog, setShowCheckoutDialog] = useState(false);
+  const [showSplitBillDialog, setShowSplitBillDialog] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "upi">("cash");
+  const [splitCount, setSplitCount] = useState<number>(2);
+  const [splitAmounts, setSplitAmounts] = useState<number[]>([]);
+  const [splitPaymentModes, setSplitPaymentModes] = useState<string[]>([]);
+  const [splitMode, setSplitMode] = useState<"equal" | "custom">("equal");
   const [currentTableId, setCurrentTableId] = useState<string | null>(null);
   const [tableNumber, setTableNumber] = useState<string>("");
   const [floorName, setFloorName] = useState<string>("");
@@ -158,8 +163,13 @@ export default function BillingPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: async ({ orderId, paymentMode, print }: { orderId: string; paymentMode: string; print: boolean }) => {
-      const res = await apiRequest("POST", `/api/orders/${orderId}/checkout`, { paymentMode, print });
+    mutationFn: async ({ orderId, paymentMode, splitPayments, print }: { 
+      orderId: string; 
+      paymentMode: string; 
+      splitPayments?: Array<{ person: number; amount: number; paymentMode: string }>; 
+      print: boolean 
+    }) => {
+      const res = await apiRequest("POST", `/api/orders/${orderId}/checkout`, { paymentMode, splitPayments, print });
       return await res.json();
     },
     onSuccess: (data) => {
@@ -405,6 +415,64 @@ export default function BillingPage() {
     setShowCheckoutDialog(true);
   };
 
+  const handleSplitBill = () => {
+    if (orderItems.length === 0 && !currentOrderId) {
+      toast({
+        title: "No order",
+        description: "Please add items or send KOT first",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSplitMode("equal");
+    setSplitCount(2);
+    const equalAmount = total / 2;
+    setSplitAmounts([equalAmount, equalAmount]);
+    setSplitPaymentModes(["cash", "cash"]);
+    setShowSplitBillDialog(true);
+  };
+
+  const handleSplitCountChange = (count: number) => {
+    setSplitCount(count);
+    if (splitMode === "equal") {
+      const equalAmount = total / count;
+      setSplitAmounts(Array(count).fill(equalAmount));
+    } else {
+      const remaining = total - splitAmounts.reduce((sum, amt, idx) => idx < count - 1 ? sum + amt : sum, 0);
+      const newAmounts = [...splitAmounts.slice(0, count - 1), remaining];
+      while (newAmounts.length < count) {
+        newAmounts.push(0);
+      }
+      setSplitAmounts(newAmounts);
+    }
+    
+    const newPaymentModes = [...splitPaymentModes];
+    while (newPaymentModes.length < count) {
+      newPaymentModes.push("cash");
+    }
+    setSplitPaymentModes(newPaymentModes.slice(0, count));
+  };
+
+  const handleSplitModeChange = (mode: "equal" | "custom") => {
+    setSplitMode(mode);
+    if (mode === "equal") {
+      const equalAmount = total / splitCount;
+      setSplitAmounts(Array(splitCount).fill(equalAmount));
+    }
+  };
+
+  const handleSplitPaymentModeChange = (index: number, mode: string) => {
+    const newModes = [...splitPaymentModes];
+    newModes[index] = mode;
+    setSplitPaymentModes(newModes);
+  };
+
+  const handleCustomAmountChange = (index: number, value: number) => {
+    const newAmounts = [...splitAmounts];
+    newAmounts[index] = value;
+    setSplitAmounts(newAmounts);
+  };
+
   const handleConfirmCheckout = async () => {
     const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const tax = subtotal * 0.05;
@@ -420,20 +488,33 @@ export default function BillingPage() {
     }
 
     try {
+      const splitPaymentsData = splitAmounts.length > 0 && splitAmounts.length === splitCount
+        ? splitAmounts.map((amount, index) => ({
+            person: index + 1,
+            amount,
+            paymentMode: splitPaymentModes[index] || paymentMethod,
+          }))
+        : undefined;
+
       await checkoutMutation.mutateAsync({ 
         orderId: currentOrderId, 
         paymentMode: paymentMethod,
+        splitPayments: splitPaymentsData,
         print: false 
       });
 
       toast({
         title: "Order completed!",
-        description: `Total: ₹${total.toFixed(2)} - Payment: ${paymentMethod.toUpperCase()}`,
+        description: splitPaymentsData 
+          ? `Total: ₹${total.toFixed(2)} - Split ${splitCount} ways`
+          : `Total: ₹${total.toFixed(2)} - Payment: ${paymentMethod.toUpperCase()}`,
       });
 
       setOrderItems([]);
       setCurrentOrderId(null);
       setShowCheckoutDialog(false);
+      setSplitAmounts([]);
+      setSplitPaymentModes([]);
 
       if (currentTableId) {
         navigate("/tables");
@@ -441,10 +522,11 @@ export default function BillingPage() {
         setCurrentTableId(null);
         setTableNumber("");
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || error?.message || "Failed to complete order";
       toast({
         title: "Error",
-        description: "Failed to complete order",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -593,11 +675,15 @@ export default function BillingPage() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => setShowCheckoutDialog(false)}
+                onClick={() => {
+                  setShowCheckoutDialog(false);
+                  setShowSplitBillDialog(true);
+                }}
                 className="flex-1"
-                data-testid="button-cancel-checkout"
+                data-testid="button-split-bill"
               >
-                Cancel
+                <Users className="h-4 w-4 mr-2" />
+                Split Bill
               </Button>
               <Button
                 onClick={handleConfirmCheckout}
@@ -605,6 +691,129 @@ export default function BillingPage() {
                 data-testid="button-confirm-payment"
               >
                 Confirm Payment
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSplitBillDialog} onOpenChange={setShowSplitBillDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Split Bill</DialogTitle>
+            <DialogDescription>
+              Split the bill among multiple people
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Button
+                variant={splitMode === "equal" ? "default" : "outline"}
+                onClick={() => handleSplitModeChange("equal")}
+                className="flex-1"
+              >
+                Split Equally
+              </Button>
+              <Button
+                variant={splitMode === "custom" ? "default" : "outline"}
+                onClick={() => handleSplitModeChange("custom")}
+                className="flex-1"
+              >
+                Custom Amounts
+              </Button>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Number of People</label>
+              <div className="flex gap-2">
+                {[2, 3, 4, 5, 6].map((count) => (
+                  <Button
+                    key={count}
+                    variant={splitCount === count ? "default" : "outline"}
+                    onClick={() => handleSplitCountChange(count)}
+                    className="flex-1"
+                  >
+                    {count}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-muted p-4 rounded-lg space-y-3">
+              <div className="flex justify-between text-sm font-medium border-b pb-2">
+                <span>Total Bill:</span>
+                <span className="text-primary">₹{total.toFixed(2)}</span>
+              </div>
+              {splitAmounts.map((amount, index) => (
+                <div key={index} className="space-y-2 pb-2 border-b last:border-0">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Person {index + 1}</span>
+                    {splitMode === "custom" && index < splitCount - 1 ? (
+                      <Input
+                        type="number"
+                        value={amount}
+                        onChange={(e) => handleCustomAmountChange(index, parseFloat(e.target.value) || 0)}
+                        className="w-32 h-8"
+                        step="0.01"
+                      />
+                    ) : (
+                      <span className="font-semibold">₹{amount.toFixed(2)}</span>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    {["cash", "card", "upi"].map((mode) => (
+                      <Button
+                        key={mode}
+                        size="sm"
+                        variant={splitPaymentModes[index] === mode ? "default" : "outline"}
+                        onClick={() => handleSplitPaymentModeChange(index, mode)}
+                        className="flex-1 h-7 text-xs"
+                      >
+                        {mode.toUpperCase()}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {splitMode === "custom" && (
+                <div className="pt-2 border-t">
+                  <div className="flex justify-between text-sm">
+                    <span>Sum:</span>
+                    <span className={splitAmounts.reduce((sum, amt) => sum + amt, 0) !== total ? "text-red-500" : "text-green-600"}>
+                      ₹{splitAmounts.reduce((sum, amt) => sum + amt, 0).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowSplitBillDialog(false);
+                  setShowCheckoutDialog(true);
+                }}
+                className="flex-1"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={() => {
+                  if (splitMode === "custom" && Math.abs(splitAmounts.reduce((sum, amt) => sum + amt, 0) - total) > 0.01) {
+                    toast({
+                      title: "Invalid split",
+                      description: "Split amounts must equal the total bill",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setShowSplitBillDialog(false);
+                  setShowCheckoutDialog(true);
+                }}
+                className="flex-1"
+              >
+                Continue to Payment
               </Button>
             </div>
           </div>
