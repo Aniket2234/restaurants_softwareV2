@@ -237,6 +237,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     await storage.updateOrderTotal(req.params.id, total.toFixed(2));
 
+    const order = await storage.getOrder(req.params.id);
+    if (order && order.tableId) {
+      const hasNew = orderItems.some((i) => i.status === "new");
+      const hasPreparing = orderItems.some((i) => i.status === "preparing");
+      const allReady = orderItems.every((i) => i.status === "ready" || i.status === "served");
+      const allServed = orderItems.every((i) => i.status === "served");
+
+      if (allServed) {
+        await storage.updateTableStatus(order.tableId, "served");
+      } else if (allReady) {
+        await storage.updateTableStatus(order.tableId, "ready");
+      } else if (hasPreparing) {
+        await storage.updateTableStatus(order.tableId, "preparing");
+      } else if (hasNew) {
+        await storage.updateTableStatus(order.tableId, "occupied");
+      }
+
+      const updatedTable = await storage.getTable(order.tableId);
+      if (updatedTable) {
+        broadcastUpdate("table_updated", updatedTable);
+      }
+    }
+
     broadcastUpdate("order_item_added", { orderId: req.params.id, item });
     res.json(item);
   });
@@ -276,15 +299,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
-
-    if (order.tableId) {
-      await storage.updateTableStatus(order.tableId, "preparing");
-      const updatedTable = await storage.getTable(order.tableId);
-      if (updatedTable) {
-        broadcastUpdate("table_updated", updatedTable);
-      }
-    }
-
     broadcastUpdate("order_updated", order);
     res.json({ order, shouldPrint: result.data.print });
   });
@@ -411,19 +425,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allItems = await storage.getOrderItems(item.orderId);
       const hasNew = allItems.some((i) => i.status === "new");
       const hasPreparing = allItems.some((i) => i.status === "preparing");
-      const allServed = allItems.every((i) => i.status === "served");
       const allReady = allItems.every((i) => i.status === "ready" || i.status === "served");
+      const allServed = allItems.every((i) => i.status === "served");
 
       let newTableStatus = null;
       if (allServed) {
         newTableStatus = "served";
         await storage.updateTableStatus(order.tableId, "served");
-      } else if (allReady && !hasNew && !hasPreparing) {
+      } else if (allReady) {
         newTableStatus = "ready";
         await storage.updateTableStatus(order.tableId, "ready");
-      } else if (hasNew || hasPreparing) {
+      } else if (hasPreparing) {
         newTableStatus = "preparing";
         await storage.updateTableStatus(order.tableId, "preparing");
+      } else if (hasNew) {
+        newTableStatus = "occupied";
+        await storage.updateTableStatus(order.tableId, "occupied");
       }
 
       if (newTableStatus) {
