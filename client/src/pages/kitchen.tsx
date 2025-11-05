@@ -331,16 +331,17 @@ function KitchenOrderCard({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const handleStartPreparing = () => {
-    const firstNewItem = items.find((item) => item.status === "new");
-    if (firstNewItem) {
-      onItemStatusChange(firstNewItem.id, "preparing");
-    }
+  const handleStartAll = () => {
+    items.forEach((item) => {
+      if (item.status === "new") {
+        onItemStatusChange(item.id, "preparing");
+      }
+    });
   };
 
-  const handleMarkReady = () => {
+  const handleMarkAllPrepared = () => {
     items.forEach((item) => {
-      if (item.status === "preparing") {
+      if (item.status !== "ready" && item.status !== "served") {
         onItemStatusChange(item.id, "ready");
       }
     });
@@ -423,24 +424,24 @@ function KitchenOrderCard({
 
         {!isHistory && (
           <div className="flex gap-2">
-            {status === "new" && (
-              <Button
-                className="flex-1"
-                onClick={handleStartPreparing}
-                data-testid={`button-start-${orderId}`}
-              >
-                Start Preparing
-              </Button>
-            )}
-            {status === "preparing" && (
-              <Button
-                className="flex-1"
-                variant="default"
-                onClick={handleMarkReady}
-                data-testid={`button-ready-${orderId}`}
-              >
-                Mark All Ready
-              </Button>
+            {!allServed && status !== "ready" && (
+              <>
+                <Button
+                  className="flex-1"
+                  onClick={handleStartAll}
+                  data-testid={`button-start-all-${orderId}`}
+                >
+                  Start All
+                </Button>
+                <Button
+                  className="flex-1"
+                  variant="default"
+                  onClick={handleMarkAllPrepared}
+                  data-testid={`button-mark-all-prepared-${orderId}`}
+                >
+                  Mark All Prepared
+                </Button>
+              </>
             )}
             {status === "ready" && !allServed && (
               <div className="flex-1 text-center py-2 font-semibold text-success">
