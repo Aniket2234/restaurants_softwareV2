@@ -150,6 +150,8 @@ export const reservations = pgTable("reservations", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
-export const insertReservationSchema = createInsertSchema(reservations).omit({ id: true, createdAt: true });
+export const insertReservationSchema = createInsertSchema(reservations).omit({ id: true, createdAt: true }).extend({
+  timeSlot: z.coerce.date(),
+});
 export type InsertReservation = z.infer<typeof insertReservationSchema>;
 export type Reservation = typeof reservations.$inferSelect;
