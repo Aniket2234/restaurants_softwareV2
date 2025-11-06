@@ -112,7 +112,13 @@ export default function BillingPage() {
   });
 
   const createOrderMutation = useMutation({
-    mutationFn: async (data: { tableId: string | null; orderType: string }) => {
+    mutationFn: async (data: { 
+      tableId: string | null; 
+      orderType: string;
+      customerName?: string;
+      customerPhone?: string;
+      customerAddress?: string;
+    }) => {
       const res = await apiRequest("POST", "/api/orders", data);
       return await res.json();
     },
@@ -290,10 +296,18 @@ export default function BillingPage() {
     let orderId = currentOrderId;
     
     if (!orderId) {
-      const order = await createOrderMutation.mutateAsync({
+      const orderData: any = {
         tableId: currentTableId,
         orderType: serviceType,
-      });
+      };
+      
+      if ((serviceType === "delivery" || serviceType === "pickup") && selectedCustomer) {
+        orderData.customerName = selectedCustomer.name;
+        orderData.customerPhone = selectedCustomer.phone;
+        orderData.customerAddress = selectedCustomer.address;
+      }
+      
+      const order = await createOrderMutation.mutateAsync(orderData);
       orderId = order.id;
     }
 
