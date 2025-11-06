@@ -50,6 +50,8 @@ export const menuItems = pgTable("menu_items", {
   available: boolean("available").notNull().default(true),
   isVeg: boolean("is_veg").notNull().default(true),
   variants: text("variants").array(),
+  image: text("image"),
+  description: text("description"),
 });
 
 export const insertMenuItemSchema = createInsertSchema(menuItems).omit({ id: true });

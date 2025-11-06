@@ -82,6 +82,9 @@ export interface IStorage {
   createReservation(reservation: InsertReservation): Promise<Reservation>;
   updateReservation(id: string, reservation: Partial<InsertReservation>): Promise<Reservation | undefined>;
   deleteReservation(id: string): Promise<boolean>;
+
+  getSetting(key: string): Promise<string | undefined>;
+  setSetting(key: string, value: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -94,6 +97,7 @@ export class MemStorage implements IStorage {
   private inventoryItems: Map<string, InventoryItem>;
   private invoices: Map<string, Invoice>;
   private reservations: Map<string, Reservation>;
+  private settings: Map<string, string>;
 
   constructor() {
     this.users = new Map();
@@ -105,6 +109,7 @@ export class MemStorage implements IStorage {
     this.inventoryItems = new Map();
     this.invoices = new Map();
     this.reservations = new Map();
+    this.settings = new Map();
     this.seedData();
   }
 
@@ -135,14 +140,14 @@ export class MemStorage implements IStorage {
     });
 
     const menuData: Omit<MenuItem, "id">[] = [
-      { name: "Chicken Burger", category: "Burgers", price: "199.00", cost: "80.00", available: true, isVeg: false, variants: ["Regular", "Large"] },
-      { name: "Veggie Pizza", category: "Pizza", price: "299.00", cost: "120.00", available: true, isVeg: true, variants: null },
-      { name: "French Fries", category: "Fast Food", price: "99.00", cost: "35.00", available: true, isVeg: true, variants: ["Small", "Medium", "Large"] },
-      { name: "Coca Cola", category: "Beverages", price: "50.00", cost: "20.00", available: true, isVeg: true, variants: null },
-      { name: "Caesar Salad", category: "Salads", price: "149.00", cost: "60.00", available: true, isVeg: true, variants: null },
-      { name: "Pasta Alfredo", category: "Pasta", price: "249.00", cost: "100.00", available: true, isVeg: true, variants: null },
-      { name: "Chocolate Cake", category: "Desserts", price: "129.00", cost: "50.00", available: true, isVeg: true, variants: null },
-      { name: "Ice Cream", category: "Desserts", price: "79.00", cost: "30.00", available: true, isVeg: true, variants: ["Vanilla", "Chocolate", "Strawberry"] },
+      { name: "Chicken Burger", category: "Burgers", price: "199.00", cost: "80.00", available: true, isVeg: false, variants: ["Regular", "Large"], image: null, description: null },
+      { name: "Veggie Pizza", category: "Pizza", price: "299.00", cost: "120.00", available: true, isVeg: true, variants: null, image: null, description: null },
+      { name: "French Fries", category: "Fast Food", price: "99.00", cost: "35.00", available: true, isVeg: true, variants: ["Small", "Medium", "Large"], image: null, description: null },
+      { name: "Coca Cola", category: "Beverages", price: "50.00", cost: "20.00", available: true, isVeg: true, variants: null, image: null, description: null },
+      { name: "Caesar Salad", category: "Salads", price: "149.00", cost: "60.00", available: true, isVeg: true, variants: null, image: null, description: null },
+      { name: "Pasta Alfredo", category: "Pasta", price: "249.00", cost: "100.00", available: true, isVeg: true, variants: null, image: null, description: null },
+      { name: "Chocolate Cake", category: "Desserts", price: "129.00", cost: "50.00", available: true, isVeg: true, variants: null, image: null, description: null },
+      { name: "Ice Cream", category: "Desserts", price: "79.00", cost: "30.00", available: true, isVeg: true, variants: ["Vanilla", "Chocolate", "Strawberry"], image: null, description: null },
     ];
 
     menuData.forEach((item) => {
@@ -156,6 +161,8 @@ export class MemStorage implements IStorage {
         available: item.available,
         isVeg: item.isVeg,
         variants: item.variants,
+        image: item.image,
+        description: item.description,
       };
       this.menuItems.set(id, menuItem);
     });
@@ -297,6 +304,8 @@ export class MemStorage implements IStorage {
       available: item.available ?? true,
       isVeg: item.isVeg ?? true,
       variants: item.variants ?? null,
+      image: item.image ?? null,
+      description: item.description ?? null,
     };
     this.menuItems.set(id, menuItem);
     return menuItem;
@@ -312,7 +321,10 @@ export class MemStorage implements IStorage {
       price: item.price ?? existing.price,
       cost: item.cost ?? existing.cost,
       available: item.available ?? existing.available,
+      isVeg: item.isVeg ?? existing.isVeg,
       variants: item.variants !== undefined ? item.variants : existing.variants,
+      image: item.image !== undefined ? item.image : existing.image,
+      description: item.description !== undefined ? item.description : existing.description,
     };
     this.menuItems.set(id, updated);
     return updated;
@@ -598,6 +610,14 @@ export class MemStorage implements IStorage {
 
   async deleteReservation(id: string): Promise<boolean> {
     return this.reservations.delete(id);
+  }
+
+  async getSetting(key: string): Promise<string | undefined> {
+    return this.settings.get(key);
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    this.settings.set(key, value);
   }
 }
 

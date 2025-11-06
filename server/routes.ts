@@ -13,6 +13,7 @@ import {
   insertReservationSchema,
 } from "@shared/schema";
 import { z } from "zod";
+import { fetchMenuItemsFromMongoDB } from "./mongodbService";
 
 const orderActionSchema = z.object({
   print: z.boolean().optional().default(false),
@@ -699,6 +700,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     broadcastUpdate("reservation_deleted", { id: req.params.id });
     res.json({ success: true });
+  });
+
+  app.get("/api/settings/mongodb-uri", async (req, res) => {
+    const uri = await storage.getSetting("mongodb_uri");
+    res.json({ uri: uri || null, hasUri: !!uri });
+  });
+
+  app.post("/api/settings/mongodb-uri", async (req, res) => {
+    const { uri } = req.body;
+    if (!uri || typeof uri !== "string") {
+      return res.status(400).json({ error: "MongoDB URI is required" });
+    }
+    await storage.setSetting("mongodb_uri", uri);
+    res.json({ success: true });
+  });
+
+  app.post("/api/menu/sync-from-mongodb", async (req, res) => {
+    try {
+      const mongoUri = await storage.getSetting("mongodb_uri");
+      if (!mongoUri) {
+        return res.status(400).json({ error: "MongoDB URI not configured. Please set it first." });
+      }
+
+      const { databaseName } = req.body;
+      const items = await fetchMenuItemsFromMongoDB(mongoUri, databaseName);
+      
+      const existingItems = await storage.getMenuItems();
+      for (const existing of existingItems) {
+        await storage.deleteMenuItem(existing.id);
+      }
+      
+      const createdItems = [];
+      for (const item of items) {
+        const created = await storage.createMenuItem(item);
+        createdItems.push(created);
+      }
+      
+      broadcastUpdate("menu_synced", { count: createdItems.length });
+      
+      res.json({ 
+        success: true, 
+        itemsImported: createdItems.length,
+        items: createdItems 
+      });
+    } catch (error) {
+      console.error("Error syncing from MongoDB:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to sync from MongoDB" 
+      });
+    }
   });
 
   const httpServer = createServer(app);
