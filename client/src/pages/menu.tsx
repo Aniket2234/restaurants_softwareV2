@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Eye, MoreVertical, Database, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, MoreVertical, Database, RefreshCw, ArrowUpDown } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,11 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { MenuItem } from "@shared/schema";
 
+type SortOption = "name-asc" | "name-desc" | "price-asc" | "price-desc";
+
 export default function MenuPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isMongoURIDialogOpen, setIsMongoURIDialogOpen] = useState(false);
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
@@ -146,6 +149,21 @@ export default function MenuPage() {
     ? items 
     : items.filter(item => item.category.toLowerCase() === selectedCategory);
 
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    switch (sortOption) {
+      case "name-asc":
+        return a.name.localeCompare(b.name);
+      case "name-desc":
+        return b.name.localeCompare(a.name);
+      case "price-asc":
+        return parseFloat(a.price) - parseFloat(b.price);
+      case "price-desc":
+        return parseFloat(b.price) - parseFloat(a.price);
+      default:
+        return 0;
+    }
+  });
+
   const handleAddSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -236,6 +254,29 @@ export default function MenuPage() {
             ))}
           </div>
           <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" variant="outline" data-testid="button-sort">
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  Sort
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSortOption("name-asc")} data-testid="sort-name-asc">
+                  Name (A-Z)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOption("name-desc")} data-testid="sort-name-desc">
+                  Name (Z-A)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOption("price-asc")} data-testid="sort-price-asc">
+                  Price (Low to High)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSortOption("price-desc")} data-testid="sort-price-desc">
+                  Price (High to Low)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" data-testid="button-add-item">
@@ -381,7 +422,7 @@ export default function MenuPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredItems.map((item) => {
+                {sortedItems.map((item) => {
                   const price = parseFloat(item.price);
                   return (
                     <tr key={item.id} className="border-b border-border last:border-0 hover-elevate" data-testid={`menu-item-${item.id}`}>

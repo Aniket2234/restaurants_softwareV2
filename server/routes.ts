@@ -154,6 +154,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(items);
   });
 
+  app.get("/api/menu/categories", async (req, res) => {
+    const categoriesJson = await storage.getSetting("menu_categories");
+    const categories = categoriesJson ? JSON.parse(categoriesJson) : [];
+    res.json({ categories });
+  });
+
   app.get("/api/menu/:id", async (req, res) => {
     const item = await storage.getMenuItem(req.params.id);
     if (!item) {
@@ -714,12 +720,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     await storage.setSetting("mongodb_uri", uri);
     res.json({ success: true });
-  });
-
-  app.get("/api/menu/categories", async (req, res) => {
-    const categoriesJson = await storage.getSetting("menu_categories");
-    const categories = categoriesJson ? JSON.parse(categoriesJson) : [];
-    res.json({ categories });
   });
 
   app.post("/api/menu/sync-from-mongodb", async (req, res) => {
