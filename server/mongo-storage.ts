@@ -18,6 +18,8 @@ import {
   type InsertInvoice,
   type Reservation,
   type InsertReservation,
+  type Customer,
+  type InsertCustomer,
 } from "@shared/schema";
 import { IStorage } from './storage';
 import { randomUUID } from 'crypto';
@@ -525,6 +527,55 @@ export class MongoStorage implements IStorage {
   async deleteReservation(id: string): Promise<boolean> {
     await this.ensureConnection();
     const result = await mongodb.getCollection<Reservation>('reservations').deleteOne({ id } as any);
+    return result.deletedCount > 0;
+  }
+
+  async getCustomers(): Promise<Customer[]> {
+    await this.ensureConnection();
+    const customers = await mongodb.getCollection<Customer>('customers').find().sort({ createdAt: -1 }).toArray();
+    return customers;
+  }
+
+  async getCustomer(id: string): Promise<Customer | undefined> {
+    await this.ensureConnection();
+    const customer = await mongodb.getCollection<Customer>('customers').findOne({ id } as any);
+    return customer ?? undefined;
+  }
+
+  async getCustomerByPhone(phone: string): Promise<Customer | undefined> {
+    await this.ensureConnection();
+    const customer = await mongodb.getCollection<Customer>('customers').findOne({ phone } as any);
+    return customer ?? undefined;
+  }
+
+  async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
+    await this.ensureConnection();
+    const id = randomUUID();
+    const customer: Customer = {
+      id,
+      name: insertCustomer.name,
+      phone: insertCustomer.phone,
+      email: insertCustomer.email ?? null,
+      address: insertCustomer.address ?? null,
+      createdAt: new Date(),
+    };
+    await mongodb.getCollection<Customer>('customers').insertOne(customer as any);
+    return customer;
+  }
+
+  async updateCustomer(id: string, customerData: Partial<InsertCustomer>): Promise<Customer | undefined> {
+    await this.ensureConnection();
+    const result = await mongodb.getCollection<Customer>('customers').findOneAndUpdate(
+      { id } as any,
+      { $set: customerData },
+      { returnDocument: 'after' }
+    );
+    return result ?? undefined;
+  }
+
+  async deleteCustomer(id: string): Promise<boolean> {
+    await this.ensureConnection();
+    const result = await mongodb.getCollection<Customer>('customers').deleteOne({ id } as any);
     return result.deletedCount > 0;
   }
 
