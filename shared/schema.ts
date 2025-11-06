@@ -241,3 +241,24 @@ export const insertCustomerSchema = z.object({
 });
 
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+
+// Feedback types
+export interface Feedback {
+  id: string;
+  customerId: string | null;
+  customerName: string;
+  rating: number;
+  comment: string;
+  sentiment: string;
+  createdAt: Date;
+}
+
+export const insertFeedbackSchema = z.object({
+  customerId: z.string().nullable().optional(),
+  customerName: z.string(),
+  rating: z.number().min(1).max(5),
+  comment: z.string(),
+  sentiment: z.enum(["Positive", "Neutral", "Negative"]).default("Neutral"),
+});
+
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;

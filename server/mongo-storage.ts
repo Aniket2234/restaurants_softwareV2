@@ -20,6 +20,8 @@ import {
   type InsertReservation,
   type Customer,
   type InsertCustomer,
+  type Feedback,
+  type InsertFeedback,
 } from "@shared/schema";
 import { IStorage } from './storage';
 import { randomUUID } from 'crypto';
@@ -576,6 +578,40 @@ export class MongoStorage implements IStorage {
   async deleteCustomer(id: string): Promise<boolean> {
     await this.ensureConnection();
     const result = await mongodb.getCollection<Customer>('customers').deleteOne({ id } as any);
+    return result.deletedCount > 0;
+  }
+
+  async getFeedbacks(): Promise<Feedback[]> {
+    await this.ensureConnection();
+    const feedbacks = await mongodb.getCollection<Feedback>('feedbacks').find().sort({ createdAt: -1 }).toArray();
+    return feedbacks;
+  }
+
+  async getFeedback(id: string): Promise<Feedback | undefined> {
+    await this.ensureConnection();
+    const feedback = await mongodb.getCollection<Feedback>('feedbacks').findOne({ id } as any);
+    return feedback ?? undefined;
+  }
+
+  async createFeedback(insertFeedback: InsertFeedback): Promise<Feedback> {
+    await this.ensureConnection();
+    const id = randomUUID();
+    const feedback: Feedback = {
+      id,
+      customerId: insertFeedback.customerId ?? null,
+      customerName: insertFeedback.customerName,
+      rating: insertFeedback.rating,
+      comment: insertFeedback.comment,
+      sentiment: insertFeedback.sentiment || "Neutral",
+      createdAt: new Date(),
+    };
+    await mongodb.getCollection<Feedback>('feedbacks').insertOne(feedback as any);
+    return feedback;
+  }
+
+  async deleteFeedback(id: string): Promise<boolean> {
+    await this.ensureConnection();
+    const result = await mongodb.getCollection<Feedback>('feedbacks').deleteOne({ id } as any);
     return result.deletedCount > 0;
   }
 

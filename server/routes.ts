@@ -12,6 +12,7 @@ import {
   insertInvoiceSchema,
   insertReservationSchema,
   insertCustomerSchema,
+  insertFeedbackSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { fetchMenuItemsFromMongoDB } from "./mongodbService";
@@ -904,9 +905,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
+  app.post("/api/admin/clear-data", async (req, res) => {
+    try {
+      const { types } = req.body;
+      const cleared: string[] = [];
+
+      if (types.includes('orderItems') || types.includes('all')) {
+        const orders = await storage.getOrders();
+        for (const order of orders) {
+          const orderItems = await storage.getOrderItems(order.id);
+          for (const item of orderItems) {
+            await storage.deleteOrderItem(item.id);
+          }
+        }
+        cleared.push('orderItems');
+      }
+
+      if (types.includes('invoices') || types.includes('all')) {
+        const invoices = await storage.getInvoices();
+        for (const invoice of invoices) {
+          await storage.deleteInvoice(invoice.id);
+        }
+        cleared.push('invoices');
+      }
+
+      broadcastUpdate("data_cleared", { types: cleared });
+      res.json({ success: true, cleared });
+    } catch (error) {
+      console.error("Error clearing data:", error);
+      res.status(500).json({ error: "Failed to clear data" });
+    }
+  });
+
   app.get("/api/customers", async (req, res) => {
     const customers = await storage.getCustomers();
     res.json(customers);
+  });
+
+  app.get("/api/customers/:id/stats", async (req, res) => {
+    const customer = await storage.getCustomer(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ error: "Customer not found" });
+    }
+
+    const orders = await storage.getOrders();
+    const customerOrders = orders.filter(o => o.customerPhone === customer.phone);
+    const totalOrders = customerOrders.length;
+
+    const invoices = await storage.getInvoices();
+    const customerInvoices = invoices.filter(inv => {
+      const order = customerOrders.find(o => o.id === inv.orderId);
+      return !!order;
+    });
+    const actualTotalSpent = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.total || '0'), 0);
+
+    const lastOrder = customerOrders.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+
+    res.json({
+      totalOrders,
+      totalSpent: actualTotalSpent,
+      lastVisit: lastOrder ? lastOrder.createdAt : customer.createdAt,
+    });
   });
 
   app.get("/api/customers/phone/:phone", async (req, res) => {
@@ -954,6 +1015,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Customer not found" });
     }
     broadcastUpdate("customer_deleted", { id: req.params.id });
+    res.json({ success: true });
+  });
+
+  app.get("/api/feedbacks", async (req, res) => {
+    const feedbacks = await storage.getFeedbacks();
+    res.json(feedbacks);
+  });
+
+  app.get("/api/feedbacks/:id", async (req, res) => {
+    const feedback = await storage.getFeedback(req.params.id);
+    if (!feedback) {
+      return res.status(404).json({ error: "Feedback not found" });
+    }
+    res.json(feedback);
+  });
+
+  app.post("/api/feedbacks", async (req, res) => {
+    const result = insertFeedbackSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const feedback = await storage.createFeedback(result.data);
+    broadcastUpdate("feedback_created", feedback);
+    res.json(feedback);
+  });
+
+  app.delete("/api/feedbacks/:id", async (req, res) => {
+    const success = await storage.deleteFeedback(req.params.id);
+    if (!success) {
+      return res.status(404).json({ error: "Feedback not found" });
+    }
+    broadcastUpdate("feedback_deleted", { id: req.params.id });
     res.json({ success: true });
   });
 

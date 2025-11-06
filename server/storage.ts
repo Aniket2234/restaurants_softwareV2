@@ -19,6 +19,8 @@ import {
   type InsertReservation,
   type Customer,
   type InsertCustomer,
+  type Feedback,
+  type InsertFeedback,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -91,6 +93,11 @@ export interface IStorage {
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
   deleteCustomer(id: string): Promise<boolean>;
+
+  getFeedbacks(): Promise<Feedback[]>;
+  getFeedback(id: string): Promise<Feedback | undefined>;
+  createFeedback(feedback: InsertFeedback): Promise<Feedback>;
+  deleteFeedback(id: string): Promise<boolean>;
 
   getSetting(key: string): Promise<string | undefined>;
   setSetting(key: string, value: string): Promise<void>;
