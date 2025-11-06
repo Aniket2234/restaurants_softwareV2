@@ -104,6 +104,10 @@ export default function BillingPage() {
     queryKey: ["/api/menu"],
   });
 
+  const { data: categoriesData } = useQuery<{ categories: string[] }>({
+    queryKey: ["/api/menu/categories"],
+  });
+
   const createOrderMutation = useMutation({
     mutationFn: async (data: { tableId: string | null; orderType: string }) => {
       const res = await apiRequest("POST", "/api/orders", data);
@@ -192,15 +196,13 @@ export default function BillingPage() {
     },
   });
 
+  const fetchedCategories = categoriesData?.categories || [];
+  const defaultCategories = ["Burgers", "Pizza", "Fast Food", "Beverages", "Desserts", "Salads", "Pasta"];
+  const categoryList = fetchedCategories.length > 0 ? fetchedCategories : defaultCategories;
+  
   const categories = [
     { id: "all", name: "All Items" },
-    { id: "Burgers", name: "Burgers" },
-    { id: "Pizza", name: "Pizza" },
-    { id: "Fast Food", name: "Fast Food" },
-    { id: "Beverages", name: "Beverages" },
-    { id: "Desserts", name: "Desserts" },
-    { id: "Salads", name: "Salads" },
-    { id: "Pasta", name: "Pasta" },
+    ...categoryList.map(cat => ({ id: cat, name: cat }))
   ];
 
   const filteredItems = menuItems.filter((item) => {

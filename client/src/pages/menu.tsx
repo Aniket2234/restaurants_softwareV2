@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Eye, MoreVertical, Database, RefreshCw, ArrowUpDown } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, MoreVertical, Database, RefreshCw, ArrowUpDown, Search, Filter } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
+import CategorySidebar from "@/components/CategorySidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ type SortOption = "name-asc" | "name-desc" | "price-asc" | "price-desc";
 export default function MenuPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isMongoURIDialogOpen, setIsMongoURIDialogOpen] = useState(false);
   const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
@@ -145,9 +147,16 @@ export default function MenuPage() {
     ? ["All", ...fetchedCategories] 
     : ["All", "Burgers", "Pizza", "Fast Food", "Beverages", "Salads", "Desserts", "Pasta"];
 
-  const filteredItems = selectedCategory === "all" 
-    ? items 
-    : items.filter(item => item.category.toLowerCase() === selectedCategory);
+  const sidebarCategories = categories.map(cat => ({
+    id: cat.toLowerCase(),
+    name: cat,
+  }));
+
+  const filteredItems = items.filter(item => {
+    const matchesCategory = selectedCategory === "all" || item.category.toLowerCase() === selectedCategory;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
     switch (sortOption) {
@@ -238,22 +247,34 @@ export default function MenuPage() {
     <div className="h-screen flex flex-col">
       <AppHeader title="Menu Management" />
 
-      <div className="p-6 border-b border-border bg-muted/30">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2 flex-wrap">
-            {categories.map((cat) => (
-              <Button
-                key={cat}
-                variant={selectedCategory === cat.toLowerCase() ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(cat.toLowerCase())}
-                data-testid={`button-category-${cat.toLowerCase()}`}
-              >
-                {cat}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-48 flex-shrink-0">
+          <CategorySidebar
+            categories={sidebarCategories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+          />
+        </div>
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-border bg-muted/30">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search menu items..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search"
+                />
+              </div>
+              <Button size="sm" variant="outline" data-testid="button-filter">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
               </Button>
-            ))}
-          </div>
-          <div className="flex gap-2">
+              <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline" data-testid="button-sort">
@@ -400,16 +421,16 @@ export default function MenuPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading menu...</div>
-        ) : (
-          <div className="bg-card rounded-lg border border-card-border">
-            <table className="w-full">
+          <div className="flex-1 overflow-y-auto p-6">
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading menu...</div>
+            ) : (
+              <div className="bg-card rounded-lg border border-card-border">
+                <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Item Name</th>
@@ -495,11 +516,13 @@ export default function MenuPage() {
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
+    </div>
 
       <Dialog open={isMongoURIDialogOpen} onOpenChange={setIsMongoURIDialogOpen}>
         <DialogContent className="max-w-md">
