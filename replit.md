@@ -86,6 +86,25 @@ Preferred communication style: Simple, everyday language.
 - Single-window application principle - no page reloads
 - Material Design principles for data-heavy enterprise UI
 
+### Recent Changes (November 2025)
+
+**MongoDB Menu Synchronization**:
+- Extended menu items schema to include `image` (URL) and `description` fields
+- Added settings storage interface for persistent configuration (MongoDB URI)
+- Created MongoDB service (`server/mongodbService.ts`) for external database connectivity
+- Implemented API endpoints:
+  - `GET /api/settings/mongodb-uri` - Retrieve saved MongoDB URI
+  - `POST /api/settings/mongodb-uri` - Save MongoDB connection string
+  - `POST /api/menu/sync-from-mongodb` - Sync menu items from MongoDB
+- Enhanced Menu UI:
+  - Simplified table layout (Item Name, Image, Category, Price, Status, Actions)
+  - Three-dot hamburger menu for MongoDB operations
+  - Database URI configuration dialog
+  - Sync dialog with optional database name override
+  - Edit dialog with full field support (name, category, price, cost, image, description, isVeg)
+  - Image viewer dialog with Eye icon for quick preview
+  - Error handling with user-friendly toast notifications
+
 ### Data Models
 
 **Current Schema**: Minimal starter schema with users table, designed to be extended for:
@@ -134,6 +153,15 @@ Preferred communication style: Simple, everyday language.
 - **class-variance-authority**: Component variant management
 - **nanoid**: ID generation
 - **ws**: WebSocket support for database connections
+
+### Implemented Integrations
+- **MongoDB Integration**: Full menu synchronization from external MongoDB databases
+  - Secure URI storage via settings interface
+  - Automatic database name extraction from appName parameter or URI path
+  - Optional manual database name override
+  - Fetches all collections and maps items to menu schema
+  - Fields mapped: name, description, price, category, isVeg, image (restaurantName)
+  - Cost automatically calculated as 40% of price for imported items
 
 ### Planned Integrations
 - Payment gateways (Stripe, PayTM)
