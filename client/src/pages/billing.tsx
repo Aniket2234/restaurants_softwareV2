@@ -56,6 +56,8 @@ export default function BillingPage() {
   const [printableInvoice, setPrintableInvoice] = useState<Invoice | null>(null);
   const [printableOrder, setPrintableOrder] = useState<Order | null>(null);
   const [printableOrderItems, setPrintableOrderItems] = useState<SchemaOrderItem[]>([]);
+  const [selectedFloorId, setSelectedFloorId] = useState<string>("");
+  const [selectedTableFromDropdown, setSelectedTableFromDropdown] = useState<string>("");
   const { toast} = useToast();
 
   useEffect(() => {
@@ -116,6 +118,14 @@ export default function BillingPage() {
 
   const { data: categoriesData } = useQuery<{ categories: string[] }>({
     queryKey: ["/api/menu/categories"],
+  });
+
+  const { data: floors = [] } = useQuery<any[]>({
+    queryKey: ["/api/floors"],
+  });
+
+  const { data: tables = [] } = useQuery<any[]>({
+    queryKey: ["/api/tables"],
   });
 
   const createOrderMutation = useMutation({
