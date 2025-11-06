@@ -151,33 +151,100 @@ export default function BillingPage() {
     },
   });
 
+  const downloadKOTPDF = async (orderId: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}/kot/pdf`);
+      if (!response.ok) {
+        throw new Error('Failed to generate KOT PDF');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `KOT-${orderId.substring(0, 8)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Success",
+        description: "KOT PDF downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download KOT PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   const kotMutation = useMutation({
     mutationFn: async ({ orderId, print }: { orderId: string; print: boolean }) => {
       const res = await apiRequest("POST", `/api/orders/${orderId}/kot`, { print });
-      return await res.json();
+      const kotData = await res.json();
+      
+      if (print) {
+        await downloadKOTPDF(orderId);
+      }
+      
+      return kotData;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
-      if (data.shouldPrint) {
-        window.print();
-      }
     },
   });
 
   const saveMutation = useMutation({
     mutationFn: async ({ orderId, print }: { orderId: string; print: boolean }) => {
       const res = await apiRequest("POST", `/api/orders/${orderId}/save`, { print });
-      return await res.json();
+      const saveData = await res.json();
+      
+      if (print && saveData.invoice) {
+        await downloadPDF(orderId, saveData.invoice.invoiceNumber);
+      }
+      
+      return saveData;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
-      if (data.shouldPrint) {
-        window.print();
-      }
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
     },
   });
+
+  const downloadPDF = async (orderId: string, invoiceNumber: string) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}/invoice/pdf`);
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Invoice-${invoiceNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Success",
+        description: "Invoice PDF downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download invoice PDF",
+        variant: "destructive",
+      });
+    }
+  };
 
   const billMutation = useMutation({
     mutationFn: async ({ orderId, print }: { orderId: string; print: boolean }) => {
@@ -185,21 +252,7 @@ export default function BillingPage() {
       const billData = await res.json();
       
       if (print && billData.invoice) {
-        const itemsRes = await fetch(`/api/orders/${orderId}/items`);
-        const items = await itemsRes.json();
-        
-        setPrintableInvoice(billData.invoice);
-        setPrintableOrder(billData.order);
-        setPrintableOrderItems(items);
-        
-        setTimeout(() => {
-          window.print();
-          setTimeout(() => {
-            setPrintableInvoice(null);
-            setPrintableOrder(null);
-            setPrintableOrderItems([]);
-          }, 500);
-        }, 100);
+        await downloadPDF(orderId, billData.invoice.invoiceNumber);
       }
       
       return billData;

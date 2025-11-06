@@ -16,6 +16,7 @@ import {
 import { z } from "zod";
 import { fetchMenuItemsFromMongoDB } from "./mongodbService";
 import { generateInvoicePDF } from "./utils/invoiceGenerator";
+import { generateKOTPDF } from "./utils/kotGenerator";
 
 const orderActionSchema = z.object({
   print: z.boolean().optional().default(false),
@@ -213,6 +214,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(orders);
   });
 
+  app.get("/api/orders/:id/invoice/pdf", async (req, res) => {
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      const invoices = await storage.getInvoices();
+      const invoice = invoices.find(inv => inv.orderId === req.params.id);
+      
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found for this order" });
+      }
+
+      const orderItems = await storage.getOrderItems(req.params.id);
+
+      const pdfBuffer = generateInvoicePDF({
+        invoice,
+        order,
+        orderItems,
+        restaurantName: "Restaurant POS",
+        restaurantAddress: "123 Main Street, City, State 12345",
+        restaurantPhone: "+1 (555) 123-4567",
+        restaurantGSTIN: "GSTIN1234567890"
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF invoice" });
+    }
+  });
+
+  app.get("/api/orders/:id/kot/pdf", async (req, res) => {
+    try {
+      const order = await storage.getOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      const orderItems = await storage.getOrderItems(req.params.id);
+      if (!orderItems || orderItems.length === 0) {
+        return res.status(400).json({ error: "No items in order" });
+      }
+
+      let tableInfo = null;
+      if (order.tableId) {
+        tableInfo = await storage.getTable(order.tableId);
+      }
+
+      const pdfBuffer = generateKOTPDF({
+        order,
+        orderItems,
+        tableNumber: tableInfo?.tableNumber || undefined,
+        floorName: tableInfo?.floorId ? (await storage.getFloor(tableInfo.floorId))?.name || undefined : undefined,
+        restaurantName: "Restaurant POS"
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="KOT-${order.id.substring(0, 8)}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating KOT PDF:", error);
+      res.status(500).json({ error: "Failed to generate KOT PDF" });
+    }
+  });
+
   app.get("/api/orders/:id", async (req, res) => {
     const order = await storage.getOrder(req.params.id);
     if (!order) {
@@ -336,8 +406,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
+
+    let invoice = null;
+    if (result.data.print) {
+      const orderItems = await storage.getOrderItems(req.params.id);
+      const subtotal = orderItems.reduce((sum, item) => 
+        sum + parseFloat(item.price) * item.quantity, 0
+      );
+      const tax = subtotal * 0.05;
+      const total = subtotal + tax;
+
+      let tableInfo = null;
+      if (order.tableId) {
+        tableInfo = await storage.getTable(order.tableId);
+      }
+
+      const invoiceCount = (await storage.getInvoices()).length;
+      const invoiceNumber = `INV-${String(invoiceCount + 1).padStart(4, '0')}`;
+
+      const invoiceItemsData = orderItems.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: parseFloat(item.price),
+        isVeg: item.isVeg,
+        notes: item.notes || undefined
+      }));
+
+      invoice = await storage.createInvoice({
+        invoiceNumber,
+        orderId: order.id,
+        tableNumber: tableInfo?.tableNumber || null,
+        floorName: tableInfo?.floorId ? (await storage.getFloor(tableInfo.floorId))?.name || null : null,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        subtotal: subtotal.toFixed(2),
+        tax: tax.toFixed(2),
+        discount: "0",
+        total: total.toFixed(2),
+        paymentMode: order.paymentMode || "cash",
+        splitPayments: null,
+        status: "Saved",
+        items: JSON.stringify(invoiceItemsData),
+        notes: null,
+      });
+
+      broadcastUpdate("invoice_created", invoice);
+    }
+
     broadcastUpdate("order_updated", order);
-    res.json({ order, shouldPrint: result.data.print });
+    res.json({ order, invoice, shouldPrint: result.data.print });
   });
 
   app.post("/api/orders/:id/bill", async (req, res) => {
