@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Search, Send, Users } from "lucide-react";
+import { Search, Send, Users, User } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import CategorySidebar from "@/components/CategorySidebar";
 import MenuItemCard from "@/components/MenuItemCard";
 import OrderCart from "@/components/OrderCart";
+import CustomerSelectionDialog from "@/components/CustomerSelectionDialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { MenuItem } from "@shared/schema";
+import type { MenuItem, Customer } from "@shared/schema";
 
 interface OrderItem {
   id: string;
@@ -48,6 +49,8 @@ export default function BillingPage() {
   const [tableNumber, setTableNumber] = useState<string>("");
   const [floorName, setFloorName] = useState<string>("");
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const { toast} = useToast();
 
   useEffect(() => {
@@ -624,9 +627,18 @@ export default function BillingPage() {
             onKOTPrint={handleKOTPrint}
             onSave={handleSaveOrder}
             onSavePrint={handleSavePrint}
+            selectedCustomer={selectedCustomer}
+            onSelectCustomer={() => setShowCustomerDialog(true)}
           />
         </div>
       </div>
+
+      <CustomerSelectionDialog
+        open={showCustomerDialog}
+        onOpenChange={setShowCustomerDialog}
+        onSelectCustomer={setSelectedCustomer}
+        selectedCustomer={selectedCustomer}
+      />
 
       <Dialog open={showCheckoutDialog} onOpenChange={setShowCheckoutDialog}>
         <DialogContent className="sm:max-w-md">

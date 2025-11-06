@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Minus, Plus, Trash2, User, Table, StickyNote, Send } from "lucide-react";
+import { Minus, Plus, Trash2, User, Table, StickyNote, Send, UserPlus } from "lucide-react";
+import type { Customer } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -40,6 +41,8 @@ interface OrderCartProps {
   onKOTPrint?: () => void;
   onSave?: () => void;
   onSavePrint?: () => void;
+  selectedCustomer?: Customer | null;
+  onSelectCustomer?: () => void;
 }
 
 export default function OrderCart({
@@ -54,6 +57,8 @@ export default function OrderCart({
   onKOTPrint,
   onSave,
   onSavePrint,
+  selectedCustomer,
+  onSelectCustomer,
 }: OrderCartProps) {
   const [notesDialogItem, setNotesDialogItem] = useState<OrderItem | null>(null);
   const [tempNotes, setTempNotes] = useState("");
@@ -108,6 +113,45 @@ export default function OrderCart({
             </Button>
           ))}
         </div>
+        
+        {(serviceType === "delivery" || serviceType === "pickup") && (
+          <div className="mt-3">
+            {selectedCustomer ? (
+              <div className="p-3 bg-white rounded-lg border border-primary/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <User className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-sm">{selectedCustomer.name}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{selectedCustomer.phone}</p>
+                    {selectedCustomer.address && (
+                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{selectedCustomer.address}</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={onSelectCustomer}
+                    data-testid="button-change-customer"
+                  >
+                    Change
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={onSelectCustomer}
+                className="w-full justify-start"
+                data-testid="button-select-customer"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Select Customer
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
