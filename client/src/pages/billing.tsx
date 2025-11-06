@@ -191,9 +191,6 @@ export default function BillingPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
-      if (data.shouldPrint) {
-        window.print();
-      }
     },
   });
 
@@ -540,25 +537,40 @@ export default function BillingPage() {
       if (pendingKotAction !== "none") {
         const shouldPrint = pendingKotAction === "kot-print";
         
-        await billMutation.mutateAsync({ orderId: orderId!, print: shouldPrint });
-        
-        await kotMutation.mutateAsync({ orderId: orderId!, print: shouldPrint });
-        
         if (shouldPrint && checkoutResponse.invoice) {
-          const pdfUrl = `/api/invoices/${checkoutResponse.invoice.id}/pdf`;
-          const link = document.createElement("a");
-          link.href = pdfUrl;
-          link.download = `${checkoutResponse.invoice.invoiceNumber}.pdf`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
+          try {
+            const pdfUrl = `/api/invoices/${checkoutResponse.invoice.id}/pdf`;
+            const response = await fetch(pdfUrl);
+            if (!response.ok) throw new Error('Failed to download invoice');
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${checkoutResponse.invoice.invoiceNumber}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          } catch (error) {
+            console.error('Failed to download invoice PDF:', error);
+            toast({
+              title: "Warning",
+              description: "Invoice PDF download failed, but order was completed successfully",
+              variant: "destructive",
+            });
+          }
         }
+        
+        await billMutation.mutateAsync({ orderId: orderId!, print: false });
+        
+        await kotMutation.mutateAsync({ orderId: orderId!, print: false });
         
         toast({
           title: "Order completed!",
           description: shouldPrint 
-            ? "Payment confirmed, invoice generated and downloaded, and KOT sent to kitchen!"
-            : "Payment confirmed, invoice generated, and KOT sent!",
+            ? "Payment confirmed, invoice downloaded, and KOT sent to kitchen!"
+            : "Payment confirmed and KOT sent to kitchen!",
         });
       } else {
         toast({
