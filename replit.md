@@ -138,6 +138,38 @@ Preferred communication style: Simple, everyday language.
   - Fixed route ordering to prevent route conflicts (specific routes before generic :id routes)
   - Save endpoint creates invoices when print=true for seamless workflow
 
+**Enhanced Invoice Management with Full Cart Functionality** (November 6, 2025):
+- Implemented comprehensive invoice management with delete and regenerate capabilities
+- **Delete Invoice**: Confirmation dialog prevents accidental deletions
+  - Shows invoice number and total in confirmation message
+  - Backend validates invoice exists before deletion
+  - Real-time invoice list update via WebSocket
+- **Regenerate Invoice with Cart Interface**: Full billing-cart style workflow
+  - Two-panel layout: Menu items (2/3 width) + Current items cart (1/3 width)
+  - **Add Items Section**: Category-based menu item selection
+    - Fetches menu items and categories from MongoDB when dialog opens
+    - Category tabs for filtering (All + dynamic categories)
+    - Click menu item to add (auto-increments quantity if already in cart)
+    - Shows veg/non-veg indicator, name, category, and price
+  - **Cart Section**: Mimics billing cart interface
+    - Card-based item display with veg/non-veg indicators
+    - +/- buttons for quantity adjustment (enforces minimum quantity of 1)
+    - Individual item totals and notes displayed
+    - Remove item button per item
+    - "Add/Edit Notes" button opens dedicated notes dialog
+  - **Notes Management**: Predefined options + custom notes
+    - 8 predefined notes (Make it Spicy, Less Spicy, No Onions, etc.)
+    - Custom note input field
+    - Notes persist with each invoice item
+  - **Real-time Calculations**: Automatic totals update
+    - Subtotal, Tax (5%), and Total recalculate on any change
+    - Displayed in summary box at bottom of cart
+  - **Data Validation**: Comprehensive input validation
+    - Empty item names blocked
+    - Quantity >= 1 enforced
+    - Price >= 0 enforced
+    - Invoice item structure preserved (name, quantity, price, isVeg, notes)
+
 ### Data Models
 
 **Current Schema**: Minimal starter schema with users table, designed to be extended for:
