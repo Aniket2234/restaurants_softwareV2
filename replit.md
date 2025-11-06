@@ -116,6 +116,28 @@ Preferred communication style: Simple, everyday language.
   - Image viewer dialog with Eye icon for quick preview
   - Error handling with user-friendly toast notifications
 
+**PDF Invoice and KOT Generation System** (November 6, 2025):
+- Implemented programmatic PDF generation using jsPDF library (no screen printing)
+- Created two specialized PDF generators:
+  - `server/utils/invoiceGenerator.ts` - Generates invoices with order-type specific attributes
+  - `server/utils/kotGenerator.ts` - Generates Kitchen Order Tickets for kitchen staff
+- Invoice PDFs adapt to service type:
+  - **Dine-in**: Shows table number and floor name
+  - **Delivery**: Shows customer name, phone, and delivery address
+  - **Pickup**: Shows customer name and phone number
+- API Endpoints:
+  - `GET /api/orders/:id/invoice/pdf` - Generates and downloads invoice PDF
+  - `GET /api/orders/:id/kot/pdf` - Generates and downloads KOT PDF
+- Billing Page Integration:
+  - **KOT & Print** button → Downloads KOT PDF for kitchen
+  - **Save & Print** button → Creates invoice and downloads invoice PDF
+  - **Bill & Print** button → Creates invoice and downloads invoice PDF
+- Technical Implementation:
+  - PDFs generated server-side with proper Content-Type headers
+  - Client downloads PDFs with descriptive filenames (Invoice-INV-0001.pdf, KOT-{orderId}.pdf)
+  - Fixed route ordering to prevent route conflicts (specific routes before generic :id routes)
+  - Save endpoint creates invoices when print=true for seamless workflow
+
 ### Data Models
 
 **Current Schema**: Minimal starter schema with users table, designed to be extended for:
