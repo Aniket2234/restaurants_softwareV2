@@ -222,3 +222,22 @@ export const insertReservationSchema = z.object({
 });
 
 export type InsertReservation = z.infer<typeof insertReservationSchema>;
+
+// Customer types
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  address: string | null;
+  createdAt: Date;
+}
+
+export const insertCustomerSchema = z.object({
+  name: z.string(),
+  phone: z.string(),
+  email: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+});
+
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
