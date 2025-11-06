@@ -51,6 +51,7 @@ export default function BillingPage() {
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
+  const [pendingKotAction, setPendingKotAction] = useState<"none" | "kot" | "kot-print">("none");
   const { toast} = useToast();
 
   useEffect(() => {
@@ -339,6 +340,12 @@ export default function BillingPage() {
         description: "Please add items before sending to kitchen",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (serviceType === "delivery" || serviceType === "pickup") {
+      setPendingKotAction(print ? "kot-print" : "kot");
+      setShowCheckoutDialog(true);
       return;
     }
 
