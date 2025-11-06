@@ -44,15 +44,16 @@ Preferred communication style: Simple, everyday language.
 **API Design**: RESTful API architecture with routes prefixed under `/api`. The route registration system is modular and extensible.
 
 **Database Layer**: 
-- Uses Drizzle ORM for type-safe database operations
-- Configured for PostgreSQL via Neon serverless database
-- WebSocket support for real-time database connections
-- Schema-first approach with type generation
+- Uses MongoDB (v6) for persistent NoSQL data storage
+- Direct MongoDB Node.js driver integration (no ORM)
+- Connection managed through custom MongoDB service (`server/mongodb.ts`)
+- Database-agnostic schema with TypeScript interfaces and Zod validation
 
-**Data Storage Strategy**: Dual-mode storage implementation:
-- `MemStorage`: In-memory storage for development/testing
-- Database storage through Drizzle ORM for production
-- Storage interface (`IStorage`) allows swapping implementations
+**Data Storage Strategy**: MongoDB-based persistent storage:
+- `MongoStorage`: Primary storage implementation using MongoDB collections
+- All data (tables, orders, menu items, invoices, etc.) persists in MongoDB
+- Automatic seed data initialization on first run (creates default floors, tables, menu items)
+- Storage interface (`IStorage`) allows future migration to other databases if needed
 
 **Session Management**: Prepared for session handling with connect-pg-simple for PostgreSQL-backed sessions.
 
@@ -87,6 +88,16 @@ Preferred communication style: Simple, everyday language.
 - Material Design principles for data-heavy enterprise UI
 
 ### Recent Changes (November 2025)
+
+**Complete MongoDB Migration** (November 6, 2025):
+- Migrated entire project from in-memory storage to MongoDB for persistent data storage
+- Removed PostgreSQL/Drizzle ORM dependencies (deleted server/db.ts, drizzle.config.ts)
+- Created MongoDB connection service with automatic database name extraction from URI
+- Updated schema from Drizzle pgTable definitions to pure TypeScript interfaces
+- Implemented MongoStorage class with full IStorage interface support for all collections
+- Added automatic seed data (floors, tables, menu items) on first database connection
+- All CRUD operations now use MongoDB directly through the Node.js driver v6
+- Data persists across server restarts using MONGODB_URI environment variable
 
 **MongoDB Menu Synchronization**:
 - Extended menu items schema to include `image` (URL) and `description` fields

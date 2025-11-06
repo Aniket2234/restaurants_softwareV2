@@ -27,6 +27,12 @@ export class MongoStorage implements IStorage {
     await mongodb.connect();
   }
 
+  private stripMongoId<T extends { _id?: any }>(doc: T | null): Omit<T, '_id'> | null {
+    if (!doc) return null;
+    const { _id, ...rest } = doc;
+    return rest as Omit<T, '_id'>;
+  }
+
   async getUser(id: string): Promise<User | undefined> {
     await this.ensureConnection();
     const user = await mongodb.getCollection<User>('users').findOne({ id } as any);
