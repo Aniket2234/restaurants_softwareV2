@@ -56,6 +56,17 @@ export default function KitchenPage() {
     })),
   });
 
+  const completeOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await apiRequest("POST", `/api/orders/${orderId}/complete`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/completed"] });
+    },
+  });
+
   const ordersWithDetails = useMemo(() => {
     if (orderItemQueries.some(q => q.isLoading)) {
       return [];
@@ -248,6 +259,7 @@ export default function KitchenPage() {
                       items={items}
                       status={getOverallOrderStatus(items)}
                       onItemStatusChange={handleItemStatusChange}
+                      onComplete={completeOrderMutation.mutate}
                     />
                   ))}
                 </div>
@@ -292,6 +304,7 @@ interface KitchenOrderCardProps {
   items: DBOrderItem[];
   status: "new" | "preparing" | "ready";
   onItemStatusChange: (itemId: string, status: string) => void;
+  onComplete?: (orderId: string) => void;
   isHistory?: boolean;
 }
 
@@ -309,6 +322,7 @@ function KitchenOrderCard({
   items,
   status,
   onItemStatusChange,
+  onComplete,
   isHistory = false,
 }: KitchenOrderCardProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -408,8 +422,20 @@ function KitchenOrderCard({
       )}>
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="font-bold text-lg">Order #{orderId.substring(0, 8)}</h3>
-            <p className="text-sm opacity-90">Table {tableNumber}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-bold text-lg">Order #{orderId.substring(0, 8)}</h3>
+              {order.orderType && order.orderType !== "dine-in" && (
+                <Badge className="bg-white/20 text-white border-white/30 text-xs">
+                  {order.orderType === "delivery" ? "DELIVERY" : "PICKUP"}
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm opacity-90">
+              {order.orderType === "dine-in" ? `Table ${tableNumber}` : tableNumber}
+            </p>
+            {order.customerName && (
+              <p className="text-xs opacity-75 mt-0.5">{order.customerName} • {order.customerPhone}</p>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
@@ -488,12 +514,22 @@ function KitchenOrderCard({
                 </Button>
               </>
             )}
-            {status === "ready" && !allServed && (
+            {status === "ready" && !allServed && order.orderType === "dine-in" && (
               <div className="flex-1 text-center py-2 font-semibold text-success">
                 ✓ Ready for Pickup
               </div>
             )}
-            {allServed && (
+            {allReadyOrServed && (order.orderType === "delivery" || order.orderType === "pickup") && onComplete && (
+              <Button
+                className="w-full"
+                variant="default"
+                onClick={() => onComplete(orderId)}
+                data-testid={`button-complete-${orderId}`}
+              >
+                Complete {order.orderType === "delivery" ? "Delivery" : "Pickup"}
+              </Button>
+            )}
+            {allServed && order.orderType === "dine-in" && (
               <div className="flex-1 text-center py-2 font-semibold text-purple-600 dark:text-purple-400">
                 ✓ Served
               </div>
