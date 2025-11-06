@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Download, Send, Eye, Edit, Trash2, RefreshCw, X } from "lucide-react";
+import { Plus, Download, Send, Eye, Edit, Trash2, RefreshCw, X, Minus, StickyNote } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -42,12 +42,27 @@ export default function InvoicesPage() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [editedInvoice, setEditedInvoice] = useState<Partial<Invoice>>({});
   const [regenerateItems, setRegenerateItems] = useState<InvoiceItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [notesItem, setNotesItem] = useState<InvoiceItem | null>(null);
+  const [tempNotes, setTempNotes] = useState("");
+  const [customNote, setCustomNote] = useState("");
   const { toast } = useToast();
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
+  });
+
+  const { data: menuItems = [] } = useQuery<MenuItem[]>({
+    queryKey: ["/api/menu"],
+    enabled: showRegenerateDialog,
+  });
+
+  const { data: categoriesData } = useQuery<{ categories: string[] }>({
+    queryKey: ["/api/menu/categories"],
+    enabled: showRegenerateDialog,
   });
 
   const getStatusBadge = (status: string) => {
@@ -157,18 +172,73 @@ export default function InvoicesPage() {
     setSelectedInvoice(invoice);
     const items = JSON.parse(invoice.items);
     setRegenerateItems(items);
+    setSelectedCategory("all");
     setShowRegenerateDialog(true);
   };
 
-  const updateRegenerateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+  const addMenuItemToRegenerate = (menuItem: MenuItem) => {
+    const existingItem = regenerateItems.find(item => item.name === menuItem.name);
+    if (existingItem) {
+      updateRegenerateQuantity(regenerateItems.indexOf(existingItem), existingItem.quantity + 1);
+    } else {
+      const newItem: InvoiceItem = {
+        name: menuItem.name,
+        quantity: 1,
+        price: parseFloat(menuItem.price),
+        isVeg: menuItem.isVeg,
+      };
+      setRegenerateItems([...regenerateItems, newItem]);
+    }
+  };
+
+  const updateRegenerateQuantity = (index: number, quantity: number) => {
+    if (quantity < 1) return;
     const updated = [...regenerateItems];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], quantity };
+    setRegenerateItems(updated);
+  };
+
+  const updateRegenerateNotes = (index: number, notes: string) => {
+    const updated = [...regenerateItems];
+    updated[index] = { ...updated[index], notes };
     setRegenerateItems(updated);
   };
 
   const removeRegenerateItem = (index: number) => {
     setRegenerateItems(regenerateItems.filter((_, i) => i !== index));
   };
+
+  const handleOpenNotes = (item: InvoiceItem, index: number) => {
+    setNotesItem({ ...item, name: `${item.name}-${index}` });
+    setTempNotes(item.notes || "");
+    setCustomNote("");
+    setShowNotesDialog(true);
+  };
+
+  const handleSaveNotes = () => {
+    if (notesItem) {
+      const index = regenerateItems.findIndex((item, i) => `${item.name}-${i}` === notesItem.name);
+      if (index !== -1) {
+        const finalNotes = customNote.trim() || tempNotes;
+        updateRegenerateNotes(index, finalNotes);
+      }
+    }
+    setShowNotesDialog(false);
+    setNotesItem(null);
+    setTempNotes("");
+    setCustomNote("");
+  };
+
+  const predefinedNotes = [
+    "Make it Spicy",
+    "Less Spicy",
+    "No Onions",
+    "Extra Cheese",
+    "Well Done",
+    "Medium Rare",
+    "No Salt",
+    "Extra Sauce",
+  ];
 
   const handleSaveRegenerate = async () => {
     if (!selectedInvoice || regenerateItems.length === 0) {
@@ -549,7 +619,7 @@ export default function InvoicesPage() {
       </AlertDialog>
 
       <Dialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-5xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle>Regenerate Invoice</DialogTitle>
             <DialogDescription>
@@ -557,110 +627,216 @@ export default function InvoicesPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedInvoice && (
-            <div className="space-y-4">
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left py-2 px-3">Item</th>
-                      <th className="text-center py-2 px-3 w-20">Qty</th>
-                      <th className="text-right py-2 px-3 w-24">Price</th>
-                      <th className="text-left py-2 px-3 w-32">Notes</th>
-                      <th className="text-right py-2 px-3 w-24">Total</th>
-                      <th className="text-center py-2 px-3 w-16">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {regenerateItems.map((item, index) => (
-                      <tr key={index} className="border-t">
-                        <td className="py-2 px-3">
-                          <Input
-                            value={item.name}
-                            onChange={(e) => updateRegenerateItem(index, 'name', e.target.value)}
-                            placeholder="Item name"
-                            data-testid={`input-item-name-${index}`}
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <Input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => updateRegenerateItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                            min="1"
-                            className="text-center"
-                            data-testid={`input-item-quantity-${index}`}
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <Input
-                            type="number"
-                            value={item.price}
-                            onChange={(e) => updateRegenerateItem(index, 'price', parseFloat(e.target.value) || 0)}
-                            min="0"
-                            step="0.01"
-                            className="text-right"
-                            data-testid={`input-item-price-${index}`}
-                          />
-                        </td>
-                        <td className="py-2 px-3">
-                          <Input
-                            value={item.notes || ""}
-                            onChange={(e) => updateRegenerateItem(index, 'notes', e.target.value || undefined)}
-                            placeholder="Notes (optional)"
-                            data-testid={`input-item-notes-${index}`}
-                          />
-                        </td>
-                        <td className="py-2 px-3 text-right font-medium">
-                          ₹{(item.quantity * item.price).toFixed(2)}
-                        </td>
-                        <td className="py-2 px-3 text-center">
+            <div className="flex h-[70vh] gap-4">
+              {/* Left: Add Items Section */}
+              <div className="w-2/3 border-r pr-4 overflow-y-auto">
+                <h3 className="font-semibold mb-3">Add Items from Menu</h3>
+                
+                {/* Category Tabs */}
+                <div className="flex gap-2 mb-4 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant={selectedCategory === "all" ? "default" : "outline"}
+                    onClick={() => setSelectedCategory("all")}
+                    data-testid="category-all"
+                  >
+                    All
+                  </Button>
+                  {(categoriesData?.categories || []).map((category) => (
+                    <Button
+                      key={category}
+                      size="sm"
+                      variant={selectedCategory === category ? "default" : "outline"}
+                      onClick={() => setSelectedCategory(category)}
+                      data-testid={`category-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Menu Items Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {menuItems
+                    .filter(item => item.available)
+                    .filter(item => selectedCategory === "all" || item.category === selectedCategory)
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="border rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => addMenuItemToRegenerate(item)}
+                        data-testid={`menu-item-${item.id}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${item.isVeg ? 'bg-green-500' : 'bg-red-500'}`} />
+                              <h4 className="font-medium text-sm">{item.name}</h4>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">{item.category}</p>
+                          </div>
+                          <span className="font-semibold text-sm">₹{parseFloat(item.price).toFixed(0)}</span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Right: Current Items Section */}
+              <div className="w-1/3 flex flex-col">
+                <h3 className="font-semibold mb-3">Current Items ({regenerateItems.length})</h3>
+                
+                <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+                  {regenerateItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No items yet. Add items from the menu.
+                    </p>
+                  ) : (
+                    regenerateItems.map((item, index) => (
+                      <div key={index} className="border rounded-lg p-3 bg-muted/30">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2 flex-1">
+                            <div className={`w-2 h-2 rounded-full ${item.isVeg ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <span className="font-medium text-sm">{item.name}</span>
+                          </div>
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 text-destructive"
+                            className="h-6 w-6 text-destructive"
                             onClick={() => removeRegenerateItem(index)}
-                            data-testid={`button-remove-item-${index}`}
+                            data-testid={`button-remove-${index}`}
                           >
-                            <X className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3" />
                           </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-7 w-7"
+                              onClick={() => updateRegenerateQuantity(index, item.quantity - 1)}
+                              data-testid={`button-decrease-${index}`}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-7 w-7"
+                              onClick={() => updateRegenerateQuantity(index, item.quantity + 1)}
+                              data-testid={`button-increase-${index}`}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <span className="font-semibold text-sm">₹{(item.quantity * item.price).toFixed(2)}</span>
+                        </div>
 
-              <div className="bg-muted p-4 rounded-lg space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span className="font-medium">
-                    ₹{regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2)}
-                  </span>
+                        {item.notes && (
+                          <div className="mt-2 text-xs text-muted-foreground bg-white p-1.5 rounded">
+                            Note: {item.notes}
+                          </div>
+                        )}
+                        
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full mt-2 h-7 text-xs"
+                          onClick={() => handleOpenNotes(item, index)}
+                          data-testid={`button-notes-${index}`}
+                        >
+                          <StickyNote className="h-3 w-3 mr-1" />
+                          {item.notes ? "Edit Notes" : "Add Notes"}
+                        </Button>
+                      </div>
+                    ))
+                  )}
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span>Tax (5%):</span>
-                  <span className="font-medium">
-                    ₹{(regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) * 0.05).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between font-bold text-lg border-t pt-2">
-                  <span>Total:</span>
-                  <span className="text-primary">
-                    ₹{(regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) * 1.05).toFixed(2)}
-                  </span>
-                </div>
-              </div>
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowRegenerateDialog(false)} className="flex-1" data-testid="button-cancel-regenerate">
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveRegenerate} className="flex-1" disabled={regenerateInvoiceMutation.isPending} data-testid="button-save-regenerate">
-                  {regenerateInvoiceMutation.isPending ? "Saving..." : "Save Changes"}
-                </Button>
+                {/* Totals */}
+                <div className="bg-muted p-3 rounded-lg space-y-2 border">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal:</span>
+                    <span className="font-medium">
+                      ₹{regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Tax (5%):</span>
+                    <span className="font-medium">
+                      ₹{(regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) * 0.05).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Total:</span>
+                    <span className="text-primary">
+                      ₹{(regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) * 1.05).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-4">
+                  <Button variant="outline" onClick={() => setShowRegenerateDialog(false)} className="flex-1" data-testid="button-cancel-regenerate">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveRegenerate} className="flex-1" disabled={regenerateInvoiceMutation.isPending} data-testid="button-save-regenerate">
+                    {regenerateInvoiceMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Notes Dialog */}
+      <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Notes</DialogTitle>
+            <DialogDescription>Select a predefined note or write your own</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+              {predefinedNotes.map((note) => (
+                <Button
+                  key={note}
+                  variant={tempNotes === note ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setTempNotes(note);
+                    setCustomNote("");
+                  }}
+                  data-testid={`predefined-note-${note.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  {note}
+                </Button>
+              ))}
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Custom Note</label>
+              <Input
+                placeholder="Enter custom note"
+                value={customNote}
+                onChange={(e) => {
+                  setCustomNote(e.target.value);
+                  setTempNotes("");
+                }}
+                data-testid="input-custom-note"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowNotesDialog(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleSaveNotes} className="flex-1">
+                Save Note
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
