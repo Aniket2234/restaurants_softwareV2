@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Download, Send, Eye, Edit } from "lucide-react";
+import { Plus, Download, Send, Eye, Edit, Trash2, RefreshCw, X } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
@@ -11,18 +11,39 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Invoice } from "@shared/schema";
+import type { Invoice, MenuItem } from "@shared/schema";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+
+interface InvoiceItem {
+  name: string;
+  quantity: number;
+  price: number;
+  isVeg: boolean;
+  notes?: string;
+}
 
 export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [editedInvoice, setEditedInvoice] = useState<Partial<Invoice>>({});
+  const [regenerateItems, setRegenerateItems] = useState<InvoiceItem[]>([]);
   const { toast } = useToast();
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
@@ -76,11 +97,126 @@ export default function InvoicesPage() {
     },
   });
 
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/invoices/${id}`);
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({
+        title: "Invoice deleted",
+        description: "Invoice has been successfully deleted",
+        variant: "destructive",
+      });
+      setShowDeleteDialog(false);
+      setSelectedInvoice(null);
+    },
+  });
+
+  const regenerateInvoiceMutation = useMutation({
+    mutationFn: async (data: { id: string; items: InvoiceItem[]; subtotal: number; tax: number; total: number }) => {
+      const updates = {
+        items: JSON.stringify(data.items),
+        subtotal: data.subtotal.toFixed(2),
+        tax: data.tax.toFixed(2),
+        total: data.total.toFixed(2),
+      };
+      const res = await apiRequest("PATCH", `/api/invoices/${data.id}`, updates);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({
+        title: "Invoice regenerated",
+        description: "Invoice has been successfully regenerated with updated items",
+      });
+      setShowRegenerateDialog(false);
+    },
+  });
+
   const handleSaveEdit = async () => {
     if (!selectedInvoice) return;
     await updateInvoiceMutation.mutateAsync({
       id: selectedInvoice.id,
       updates: editedInvoice,
+    });
+  };
+
+  const handleDeleteInvoice = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedInvoice) return;
+    await deleteInvoiceMutation.mutateAsync(selectedInvoice.id);
+  };
+
+  const handleRegenerateInvoice = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    const items = JSON.parse(invoice.items);
+    setRegenerateItems(items);
+    setShowRegenerateDialog(true);
+  };
+
+  const updateRegenerateItem = (index: number, field: keyof InvoiceItem, value: any) => {
+    const updated = [...regenerateItems];
+    updated[index] = { ...updated[index], [field]: value };
+    setRegenerateItems(updated);
+  };
+
+  const removeRegenerateItem = (index: number) => {
+    setRegenerateItems(regenerateItems.filter((_, i) => i !== index));
+  };
+
+  const handleSaveRegenerate = async () => {
+    if (!selectedInvoice || regenerateItems.length === 0) {
+      toast({
+        title: "Error",
+        description: "Invoice must have at least one item",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    for (const item of regenerateItems) {
+      if (!item.name || item.name.trim() === '') {
+        toast({
+          title: "Validation Error",
+          description: "All items must have a name",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (item.quantity < 1) {
+        toast({
+          title: "Validation Error",
+          description: "Quantity must be at least 1",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (item.price < 0) {
+        toast({
+          title: "Validation Error",
+          description: "Price cannot be negative",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const subtotal = regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    const tax = subtotal * 0.05;
+    const total = subtotal + tax;
+
+    await regenerateInvoiceMutation.mutateAsync({
+      id: selectedInvoice.id,
+      items: regenerateItems,
+      subtotal,
+      tax,
+      total,
     });
   };
 
@@ -204,9 +340,11 @@ export default function InvoicesPage() {
                     <td className="py-3 px-4 text-center">{getStatusBadge(invoice.status)}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-2">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" title="View Invoice" onClick={() => handleViewInvoice(invoice)}><Eye className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Download Invoice" onClick={() => handleDownloadInvoice(invoice)}><Download className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit Invoice" onClick={() => handleEditInvoice(invoice)}><Edit className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="View Invoice" onClick={() => handleViewInvoice(invoice)} data-testid={`button-view-${invoice.id}`}><Eye className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Download Invoice" onClick={() => handleDownloadInvoice(invoice)} data-testid={`button-download-${invoice.id}`}><Download className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit Invoice" onClick={() => handleEditInvoice(invoice)} data-testid={`button-edit-${invoice.id}`}><Edit className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8" title="Regenerate Invoice" onClick={() => handleRegenerateInvoice(invoice)} data-testid={`button-regenerate-${invoice.id}`}><RefreshCw className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete Invoice" onClick={() => handleDeleteInvoice(invoice)} data-testid={`button-delete-${invoice.id}`}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </td>
                   </tr>
@@ -354,6 +492,7 @@ export default function InvoicesPage() {
                   value={editedInvoice.customerName || ""}
                   onChange={(e) => setEditedInvoice({ ...editedInvoice, customerName: e.target.value })}
                   placeholder="Enter customer name"
+                  data-testid="input-customer-name"
                 />
               </div>
               <div>
@@ -362,6 +501,7 @@ export default function InvoicesPage() {
                   value={editedInvoice.customerPhone || ""}
                   onChange={(e) => setEditedInvoice({ ...editedInvoice, customerPhone: e.target.value })}
                   placeholder="Enter phone number"
+                  data-testid="input-customer-phone"
                 />
               </div>
               <div>
@@ -370,15 +510,153 @@ export default function InvoicesPage() {
                   value={editedInvoice.notes || ""}
                   onChange={(e) => setEditedInvoice({ ...editedInvoice, notes: e.target.value })}
                   placeholder="Add notes"
+                  data-testid="input-notes"
                 />
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowEditDialog(false)} className="flex-1">
+                <Button variant="outline" onClick={() => setShowEditDialog(false)} className="flex-1" data-testid="button-cancel-edit">
                   Cancel
                 </Button>
-                <Button onClick={handleSaveEdit} className="flex-1">
+                <Button onClick={handleSaveEdit} className="flex-1" data-testid="button-save-edit">
                   Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete invoice {selectedInvoice?.invoiceNumber}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={showRegenerateDialog} onOpenChange={setShowRegenerateDialog}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Regenerate Invoice</DialogTitle>
+            <DialogDescription>
+              Edit items in invoice {selectedInvoice?.invoiceNumber}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedInvoice && (
+            <div className="space-y-4">
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left py-2 px-3">Item</th>
+                      <th className="text-center py-2 px-3 w-20">Qty</th>
+                      <th className="text-right py-2 px-3 w-24">Price</th>
+                      <th className="text-left py-2 px-3 w-32">Notes</th>
+                      <th className="text-right py-2 px-3 w-24">Total</th>
+                      <th className="text-center py-2 px-3 w-16">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {regenerateItems.map((item, index) => (
+                      <tr key={index} className="border-t">
+                        <td className="py-2 px-3">
+                          <Input
+                            value={item.name}
+                            onChange={(e) => updateRegenerateItem(index, 'name', e.target.value)}
+                            placeholder="Item name"
+                            data-testid={`input-item-name-${index}`}
+                          />
+                        </td>
+                        <td className="py-2 px-3">
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateRegenerateItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                            min="1"
+                            className="text-center"
+                            data-testid={`input-item-quantity-${index}`}
+                          />
+                        </td>
+                        <td className="py-2 px-3">
+                          <Input
+                            type="number"
+                            value={item.price}
+                            onChange={(e) => updateRegenerateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                            min="0"
+                            step="0.01"
+                            className="text-right"
+                            data-testid={`input-item-price-${index}`}
+                          />
+                        </td>
+                        <td className="py-2 px-3">
+                          <Input
+                            value={item.notes || ""}
+                            onChange={(e) => updateRegenerateItem(index, 'notes', e.target.value || undefined)}
+                            placeholder="Notes (optional)"
+                            data-testid={`input-item-notes-${index}`}
+                          />
+                        </td>
+                        <td className="py-2 px-3 text-right font-medium">
+                          ₹{(item.quantity * item.price).toFixed(2)}
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => removeRegenerateItem(index)}
+                            data-testid={`button-remove-item-${index}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span className="font-medium">
+                    ₹{regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Tax (5%):</span>
+                  <span className="font-medium">
+                    ₹{(regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) * 0.05).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between font-bold text-lg border-t pt-2">
+                  <span>Total:</span>
+                  <span className="text-primary">
+                    ₹{(regenerateItems.reduce((sum, item) => sum + (item.quantity * item.price), 0) * 1.05).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowRegenerateDialog(false)} className="flex-1" data-testid="button-cancel-regenerate">
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveRegenerate} className="flex-1" disabled={regenerateInvoiceMutation.isPending} data-testid="button-save-regenerate">
+                  {regenerateInvoiceMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </div>
