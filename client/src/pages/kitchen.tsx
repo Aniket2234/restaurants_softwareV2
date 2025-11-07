@@ -22,7 +22,7 @@ interface OrderWithDetails {
 }
 
 export default function KitchenPage() {
-  const [showHistory, setShowHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState<"current" | "served" | "completed">("current");
   
   const { data: activeOrders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders/active"],
@@ -111,19 +111,21 @@ export default function KitchenPage() {
     });
   }, [completedOrders, completedOrderItemQueries, tables]);
 
-  const { activeOrdersList, readyOrdersList, completedOrdersList } = useMemo(() => {
-    const active = ordersWithDetails.filter(({ items }) => 
-      !items.every(item => item.status === "served")
+  const { currentKOT, servedKOT, completedKOT } = useMemo(() => {
+    const current = ordersWithDetails.filter(({ items }) => 
+      !items.every(item => item.status === "ready" || item.status === "served")
     );
-    const ready = ordersWithDetails.filter(({ items }) => 
+    const served = ordersWithDetails.filter(({ items }) => 
       items.every(item => item.status === "served")
     );
     return { 
-      activeOrdersList: active, 
-      readyOrdersList: ready,
-      completedOrdersList: completedOrdersWithDetails 
+      currentKOT: current,
+      servedKOT: served,
+      completedKOT: completedOrdersWithDetails 
     };
   }, [ordersWithDetails, completedOrdersWithDetails]);
+
+  const allOrders = [...currentKOT, ...servedKOT, ...completedKOT];
 
   const isLoading = orderItemQueries.some(q => q.isLoading);
 
@@ -188,9 +190,9 @@ export default function KitchenPage() {
   };
 
   const statusCounts = {
-    new: activeOrdersList.filter((o) => getOverallOrderStatus(o.items) === "new").length,
-    preparing: activeOrdersList.filter((o) => getOverallOrderStatus(o.items) === "preparing").length,
-    ready: activeOrdersList.filter((o) => getOverallOrderStatus(o.items) === "ready").length,
+    new: allOrders.filter((o) => getOverallOrderStatus(o.items) === "new").length,
+    preparing: allOrders.filter((o) => getOverallOrderStatus(o.items) === "preparing").length,
+    ready: allOrders.filter((o) => getOverallOrderStatus(o.items) === "ready").length,
   };
 
   return (
@@ -221,16 +223,29 @@ export default function KitchenPage() {
           </div>
           <div className="flex gap-2">
             <Button
-              variant="outline"
-              onClick={() => setShowHistory(!showHistory)}
-              data-testid="button-toggle-history"
+              variant={activeTab === "current" ? "default" : "outline"}
+              onClick={() => setActiveTab("current")}
+              data-testid="button-tab-current"
             >
-              <History className="h-4 w-4 mr-2" />
-              {showHistory ? "Hide" : "Show"} History ({completedOrdersList.length})
+              Current KOT ({currentKOT.length})
+            </Button>
+            <Button
+              variant={activeTab === "served" ? "default" : "outline"}
+              onClick={() => setActiveTab("served")}
+              data-testid="button-tab-served"
+            >
+              Served KOT ({servedKOT.length})
+            </Button>
+            <Button
+              variant={activeTab === "completed" ? "default" : "outline"}
+              onClick={() => setActiveTab("completed")}
+              data-testid="button-tab-completed"
+            >
+              Completed KOT ({completedKOT.length})
             </Button>
             <Button
               onClick={handleMarkAllPrepared}
-              disabled={activeOrdersList.length === 0 || markAllPreparedMutation.isPending}
+              disabled={currentKOT.length === 0 || markAllPreparedMutation.isPending}
               className="bg-success hover:bg-success/90"
               data-testid="button-mark-all-prepared"
             >
@@ -246,72 +261,80 @@ export default function KitchenPage() {
           <div className="text-center py-8 text-muted-foreground">Loading orders...</div>
         ) : (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-lg font-semibold mb-4">Active Orders</h2>
-              {activeOrdersList.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No active orders</div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {activeOrdersList.map(({ order, items, tableNumber }) => (
-                    <KitchenOrderCard
-                      key={order.id}
-                      orderId={order.id}
-                      order={order}
-                      tableNumber={tableNumber}
-                      orderTime={new Date(order.createdAt)}
-                      items={items}
-                      status={getOverallOrderStatus(items)}
-                      onItemStatusChange={handleItemStatusChange}
-                      onComplete={completeOrderMutation.mutate}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {readyOrdersList.length > 0 && (
+            {activeTab === "current" && (
               <div>
-                <h2 className="text-lg font-semibold mb-4">Ready Orders</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {readyOrdersList.map(({ order, items, tableNumber }) => (
-                    <KitchenOrderCard
-                      key={order.id}
-                      orderId={order.id}
-                      order={order}
-                      tableNumber={tableNumber}
-                      orderTime={new Date(order.createdAt)}
-                      items={items}
-                      status="ready"
-                      onItemStatusChange={handleItemStatusChange}
-                      onComplete={completeOrderMutation.mutate}
-                      isHistory={false}
-                    />
-                  ))}
-                </div>
+                <h2 className="text-lg font-semibold mb-4">Current KOT - New & Preparing</h2>
+                {currentKOT.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No current orders</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {currentKOT.map(({ order, items, tableNumber }) => (
+                      <KitchenOrderCard
+                        key={order.id}
+                        orderId={order.id}
+                        order={order}
+                        tableNumber={tableNumber}
+                        orderTime={new Date(order.createdAt)}
+                        items={items}
+                        status={getOverallOrderStatus(items)}
+                        onItemStatusChange={handleItemStatusChange}
+                        onComplete={completeOrderMutation.mutate}
+                        isHistory={false}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            {showHistory && completedOrdersList.length > 0 && (
+            {activeTab === "served" && (
               <div>
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Ticket History
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
-                  {completedOrdersList.map(({ order, items, tableNumber }) => (
-                    <KitchenOrderCard
-                      key={order.id}
-                      orderId={order.id}
-                      order={order}
-                      tableNumber={tableNumber}
-                      orderTime={new Date(order.createdAt)}
-                      items={items}
-                      status="ready"
-                      onItemStatusChange={handleItemStatusChange}
-                      isHistory={true}
-                    />
-                  ))}
-                </div>
+                <h2 className="text-lg font-semibold mb-4">Served KOT - Ready for Checkout</h2>
+                {servedKOT.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No served orders</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {servedKOT.map(({ order, items, tableNumber }) => (
+                      <KitchenOrderCard
+                        key={order.id}
+                        orderId={order.id}
+                        order={order}
+                        tableNumber={tableNumber}
+                        orderTime={new Date(order.createdAt)}
+                        items={items}
+                        status="ready"
+                        onItemStatusChange={handleItemStatusChange}
+                        onComplete={completeOrderMutation.mutate}
+                        isHistory={false}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "completed" && (
+              <div>
+                <h2 className="text-lg font-semibold mb-4">Completed KOT - Paid & Finished</h2>
+                {completedKOT.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No completed orders</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 opacity-60">
+                    {completedKOT.map(({ order, items, tableNumber }) => (
+                      <KitchenOrderCard
+                        key={order.id}
+                        orderId={order.id}
+                        order={order}
+                        tableNumber={tableNumber}
+                        orderTime={new Date(order.createdAt)}
+                        items={items}
+                        status="ready"
+                        onItemStatusChange={handleItemStatusChange}
+                        isHistory={true}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
