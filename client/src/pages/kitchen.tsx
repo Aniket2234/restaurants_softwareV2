@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Check, History, PlayCircle } from "lucide-react";
+import { Clock, Check, History, PlayCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Order, OrderItem as DBOrderItem, Table } from "@shared/schema";
@@ -425,11 +425,13 @@ function KitchenOrderCard({
   isHistory = false,
 }: KitchenOrderCardProps) {
   const [elapsedTime, setElapsedTime] = useState(0);
-  
   const isPaid = order.status === "paid" || order.status === "completed";
   const completedTime = order.completedAt ? new Date(order.completedAt) : null;
   const allServed = items.every(item => item.status === "served");
   const allReadyOrServed = items.every(item => item.status === "ready" || item.status === "served");
+  
+  const shouldStartCollapsed = allServed || isPaid;
+  const [isCollapsed, setIsCollapsed] = useState(shouldStartCollapsed);
 
   const itemCount = items.length;
   const currentItemIds = items.map(i => i.id).sort();
@@ -546,53 +548,72 @@ function KitchenOrderCard({
       </div>
 
       <div className="p-3 bg-card">
-        <div className="space-y-2 mb-3">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start justify-between py-2 border-b border-border last:border-0"
+        {shouldStartCollapsed && (
+          <div className="mb-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-between"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              data-testid={`button-toggle-items-${orderId}`}
             >
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="font-mono">
-                    {item.quantity}x
-                  </Badge>
-                  <span
-                    className={cn(
-                      "font-medium",
-                      (item.status === "ready" || item.status === "served") &&
-                        "line-through text-muted-foreground"
-                    )}
-                  >
-                    {item.name}
-                  </span>
+              <span className="text-sm font-medium text-muted-foreground">
+                {items.length} {items.length === 1 ? "item" : "items"}
+              </span>
+              {isCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+          </div>
+        )}
+        
+        {!isCollapsed && (
+          <div className="space-y-2 mb-3">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start justify-between py-2 border-b border-border last:border-0"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="font-mono">
+                      {item.quantity}x
+                    </Badge>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        (item.status === "ready" || item.status === "served") &&
+                          "line-through text-muted-foreground"
+                      )}
+                    >
+                      {item.name}
+                    </span>
+                  </div>
+                  {item.notes && (
+                    <p className="text-xs text-muted-foreground mt-1 ml-12 italic">{item.notes}</p>
+                  )}
                 </div>
-                {item.notes && (
-                  <p className="text-xs text-muted-foreground mt-1 ml-12 italic">{item.notes}</p>
-                )}
+                <div className="flex items-center gap-2">
+                  {item.status === "ready" || item.status === "served" ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : !isHistory ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        onItemStatusChange(
+                          item.id,
+                          item.status === "new" ? "preparing" : "ready"
+                        )
+                      }
+                      data-testid={`button-status-${item.id}`}
+                    >
+                      {item.status === "new" ? "Start" : "Ready"}
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {item.status === "ready" || item.status === "served" ? (
-                  <Check className="h-4 w-4 text-success" />
-                ) : !isHistory ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      onItemStatusChange(
-                        item.id,
-                        item.status === "new" ? "preparing" : "ready"
-                      )
-                    }
-                    data-testid={`button-status-${item.id}`}
-                  >
-                    {item.status === "new" ? "Start" : "Ready"}
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {!isHistory && (
           <div className="flex gap-2">
