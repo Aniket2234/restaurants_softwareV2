@@ -3,10 +3,18 @@ import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Check, History, PlayCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, Check, History, PlayCircle, ChevronDown, ChevronUp, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Order, OrderItem as DBOrderItem, Table } from "@shared/schema";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 const kitchenTimerStore = new Map<string, { 
   startTime: number, 
@@ -230,8 +238,8 @@ export default function KitchenPage() {
       <AppHeader title="Kitchen Display System" showSearch={false} />
 
       <div className="p-6 border-b border-border bg-muted/30">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-4 hidden md:flex">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-danger"></div>
               <span className="text-sm">
@@ -263,7 +271,55 @@ export default function KitchenPage() {
               </span>
             </div>
           </div>
-          <div className="flex gap-2">
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="md:hidden" data-testid="button-status-menu">
+                <Menu className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel>Order Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-danger"></div>
+                  <span>New</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.new}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-warning"></div>
+                  <span>Preparing</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.preparing}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-success"></div>
+                  <span>Ready</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.ready}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                  <span>Served</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.served}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span>Completed</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.completed}</Badge>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="flex gap-2 flex-wrap">
             <Button
               variant={activeTab === "current" ? "default" : "outline"}
               onClick={() => setActiveTab("current")}

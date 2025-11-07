@@ -28,6 +28,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -305,8 +307,8 @@ export default function TablesPage() {
       />
 
       <div className="p-6 border-b border-border bg-muted/30">
-        <div className="flex items-center justify-between">
-          <div className="flex gap-4 flex-wrap">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-4 flex-wrap hidden md:flex">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-white border-2 border-black shadow-sm"></div>
               <span className="text-sm font-medium">
@@ -344,6 +346,61 @@ export default function TablesPage() {
               </span>
             </div>
           </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="md:hidden" data-testid="button-table-status-menu">
+                <Menu className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel>Table Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-white border-2 border-black shadow-sm"></div>
+                  <span>Available</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.free}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#ff2400]"></div>
+                  <span>Occupied</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.occupied}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#fff500]"></div>
+                  <span>Preparing</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.preparing}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#3acd32]"></div>
+                  <span>Ready</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.ready}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#0075ff]"></div>
+                  <span>Reserved</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.reserved}</Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#8000ff]"></div>
+                  <span>Served</span>
+                </div>
+                <Badge variant="secondary">{statusCounts.served}</Badge>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <div className="flex gap-2">
             <Button 
               variant="outline" 
