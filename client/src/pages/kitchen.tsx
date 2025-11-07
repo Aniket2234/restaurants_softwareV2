@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueries } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Check, History } from "lucide-react";
+import { Clock, Check, History, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Order, OrderItem as DBOrderItem, Table } from "@shared/schema";
@@ -147,6 +147,30 @@ export default function KitchenPage() {
     },
   });
 
+  const startAllMutation = useMutation({
+    mutationFn: async () => {
+      const allItems = ordersWithDetails.flatMap(o => o.items);
+      const newItems = allItems.filter(item => item.status === "new");
+      
+      await Promise.all(
+        newItems.map(item => 
+          apiRequest("PATCH", `/api/order-items/${item.id}/status`, { status: "preparing" })
+        )
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/completed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tables"] });
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          Array.isArray(query.queryKey) &&
+          query.queryKey[0] === "/api/orders" &&
+          query.queryKey[2] === "items"
+      });
+    },
+  });
+
   const markAllPreparedMutation = useMutation({
     mutationFn: async () => {
       const allItems = ordersWithDetails.flatMap(o => o.items);
@@ -173,6 +197,10 @@ export default function KitchenPage() {
 
   const handleItemStatusChange = async (itemId: string, newStatus: string) => {
     await updateItemStatusMutation.mutateAsync({ itemId, status: newStatus });
+  };
+
+  const handleStartAll = async () => {
+    await startAllMutation.mutateAsync();
   };
 
   const handleMarkAllPrepared = async () => {
@@ -242,6 +270,15 @@ export default function KitchenPage() {
               data-testid="button-tab-completed"
             >
               Completed KOT ({completedKOT.length})
+            </Button>
+            <Button
+              onClick={handleStartAll}
+              disabled={currentKOT.length === 0 || startAllMutation.isPending}
+              className="bg-primary hover:bg-primary/90"
+              data-testid="button-start-all"
+            >
+              <PlayCircle className="h-4 w-4 mr-2" />
+              {startAllMutation.isPending ? "Starting..." : "Start All"}
             </Button>
             <Button
               onClick={handleMarkAllPrepared}
