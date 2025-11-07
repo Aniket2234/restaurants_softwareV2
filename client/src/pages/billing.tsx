@@ -914,6 +914,7 @@ export default function BillingPage() {
             onRemoveItem={handleRemoveItem}
             onUpdateNotes={handleUpdateNotes}
             onCheckout={handleCheckout}
+            onSplitBill={handleSplitBill}
             onKOT={handleSendKOT}
             onKOTPrint={handleKOTPrint}
             onSave={handleSaveOrder}

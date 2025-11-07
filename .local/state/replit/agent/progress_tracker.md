@@ -361,3 +361,11 @@
 [x] 361. Changed payment method label to "Select Payment Method to Complete" when in checkout mode
 [x] 362. Successfully restarted application with checkout mode implementation
 [x] 363. ✅ CHECKOUT MODE IMPLEMENTATION COMPLETE: Users can now complete checkout directly in cart section without popup dialog
+[x] 364. Added Split Bill functionality to checkout mode (November 07, 2025)
+[x] 365. Imported Users icon from lucide-react for Split Bill button
+[x] 366. Added onSplitBill prop to OrderCart interface
+[x] 367. Added Split Bill button in checkout mode with Users icon
+[x] 368. Passed handleSplitBill handler from billing.tsx to OrderCart component
+[x] 369. Split Bill button styled with primary border and hover effects
+[x] 370. Successfully restarted application with Split Bill in checkout mode
+[x] 371. ✅ CHECKOUT MODE ENHANCED: Now includes Split Bill option along with payment methods and cancel button

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Minus, Plus, Trash2, User, Table, StickyNote, Send, UserPlus } from "lucide-react";
+import { Minus, Plus, Trash2, User, Table, StickyNote, Send, UserPlus, Users } from "lucide-react";
 import type { Customer } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ interface OrderCartProps {
   onRemoveItem: (id: string) => void;
   onUpdateNotes?: (id: string, notes: string) => void;
   onCheckout: () => void;
+  onSplitBill?: () => void;
   onKOT?: () => void;
   onKOTPrint?: () => void;
   onSave?: () => void;
@@ -64,6 +65,7 @@ export default function OrderCart({
   onRemoveItem,
   onUpdateNotes,
   onCheckout,
+  onSplitBill,
   onKOT,
   onKOTPrint,
   onSave,
@@ -419,14 +421,27 @@ export default function OrderCart({
         )}
         
         {checkoutMode && (
-          <Button
-            variant="outline"
-            className="w-full text-sm"
-            onClick={onCancelCheckout}
-            data-testid="button-cancel-checkout"
-          >
-            Cancel Checkout
-          </Button>
+          <div className="space-y-2">
+            {onSplitBill && (
+              <Button
+                variant="outline"
+                className="w-full text-sm border-primary text-primary hover:bg-primary hover:text-white"
+                onClick={onSplitBill}
+                data-testid="button-split-bill"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Split Bill
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="w-full text-sm"
+              onClick={onCancelCheckout}
+              data-testid="button-cancel-checkout"
+            >
+              Cancel Checkout
+            </Button>
+          </div>
         )}
       </div>
 
