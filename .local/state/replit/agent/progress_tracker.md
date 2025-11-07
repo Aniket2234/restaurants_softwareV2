@@ -332,3 +332,10 @@
 [x] 332. Screenshot verified all orders deleted - Current KOT (0), Served KOT (0), Completed KOT (0)
 [x] 333. Database now completely clean with no orders, invoices, or order items
 [x] 334. ✅ ORDER DELETION COMPLETE: All orders successfully removed from MongoDB database
+[x] 335. Added hasAnyNewItems variable to check if ticket has any new items (November 07, 2025)
+[x] 336. Added disabled={!hasAnyNewItems} to "Start All" button in individual KOT tickets
+[x] 337. "Start All" button now greys out when all items in that ticket have been started
+[x] 338. Button remains enabled only when there are items with status "new"
+[x] 339. Fixed variable name collision by renaming to hasAnyNewItems
+[x] 340. Successfully restarted application with Start All button disable logic
+[x] 341. ✅ START ALL BUTTON DISABLE FEATURE COMPLETE: Button greys out when no new items in ticket

@@ -491,6 +491,8 @@ function KitchenOrderCard({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const hasAnyNewItems = items.some((item) => item.status === "new");
+
   const handleStartAll = () => {
     items.forEach((item) => {
       if (item.status === "new") {
@@ -599,6 +601,7 @@ function KitchenOrderCard({
                 <Button
                   className="flex-1"
                   onClick={handleStartAll}
+                  disabled={!hasAnyNewItems}
                   data-testid={`button-start-all-${orderId}`}
                 >
                   Start All
