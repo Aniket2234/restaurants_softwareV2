@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Send, Users, User } from "lucide-react";
+import { Search, Send, Users, User, ShoppingCart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AppHeader from "@/components/AppHeader";
@@ -17,6 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -59,6 +65,7 @@ export default function BillingPage() {
   const [printableOrderItems, setPrintableOrderItems] = useState<SchemaOrderItem[]>([]);
   const [selectedFloorId, setSelectedFloorId] = useState<string>("");
   const [selectedTableFromDropdown, setSelectedTableFromDropdown] = useState<string>("");
+  const [showMobileCart, setShowMobileCart] = useState(false);
   const { toast} = useToast();
 
   useEffect(() => {
@@ -835,7 +842,7 @@ export default function BillingPage() {
     <div className="h-screen flex flex-col overflow-hidden bg-gray-50">
       <AppHeader title="Billing / POS" showSearch={false} />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         <div className="w-40 shrink-0 hidden md:block bg-white border-r border-gray-200">
           <CategorySidebar
             categories={categories}
@@ -880,7 +887,7 @@ export default function BillingPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-4 pb-24 lg:pb-4 bg-gray-50">
             {menuLoading ? (
               <div className="text-center py-12 text-gray-500">
                 <div className="animate-pulse">Loading menu...</div>
@@ -904,7 +911,7 @@ export default function BillingPage() {
           </div>
         </div>
 
-        <div className="w-full md:w-[480px] shrink-0 md:block bg-white shadow-lg">
+        <div className="hidden lg:block lg:w-[480px] shrink-0 bg-white shadow-lg">
           <OrderCart
             items={orderItems}
             serviceType={serviceType}
@@ -935,6 +942,64 @@ export default function BillingPage() {
           />
         </div>
       </div>
+
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t-2 border-gray-200 p-4 shadow-lg z-10">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">
+            <div className="text-sm text-gray-600">
+              {orderItems.length} {orderItems.length === 1 ? 'item' : 'items'}
+            </div>
+            <div className="text-lg font-bold">₹{total.toFixed(2)}</div>
+          </div>
+          <Button 
+            onClick={() => setShowMobileCart(true)}
+            className="flex items-center gap-2"
+            size="lg"
+            data-testid="button-view-cart"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            View Cart
+          </Button>
+        </div>
+      </div>
+
+      <Sheet open={showMobileCart} onOpenChange={setShowMobileCart}>
+        <SheetContent side="bottom" className="h-[90vh] p-0">
+          <SheetHeader className="p-4 border-b">
+            <SheetTitle>Your Order</SheetTitle>
+          </SheetHeader>
+          <div className="h-full overflow-y-auto">
+            <OrderCart
+              items={orderItems}
+              serviceType={serviceType}
+              onServiceTypeChange={setServiceType}
+              onUpdateQuantity={handleUpdateQuantity}
+              onRemoveItem={handleRemoveItem}
+              onUpdateNotes={handleUpdateNotes}
+              onCheckout={handleCheckout}
+              onSplitBill={handleSplitBill}
+              onKOT={handleSendKOT}
+              onKOTPrint={handleKOTPrint}
+              onSave={handleSaveOrder}
+              onSavePrint={handleSavePrint}
+              selectedCustomer={selectedCustomer}
+              onSelectCustomer={() => setShowCustomerDialog(true)}
+              currentTableId={currentTableId}
+              floors={floors}
+              tables={tables}
+              selectedFloorId={selectedFloorId}
+              selectedTableFromDropdown={selectedTableFromDropdown}
+              onFloorChange={handleFloorChange}
+              onTableChange={handleTableChange}
+              checkoutMode={checkoutMode}
+              onCancelCheckout={handleCancelCheckout}
+              onPaymentMethodSelect={handlePaymentMethodSelect}
+              onConfirmPayment={handleConfirmPayment}
+              paymentMethod={paymentMethod}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <CustomerSelectionDialog
         open={showCustomerDialog}
