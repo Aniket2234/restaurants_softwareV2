@@ -345,3 +345,8 @@
 [x] 345. Verified Express server serving on port 5000 - application fully operational
 [x] 346. ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ ✅ FINAL PROJECT IMPORT COMPLETE: All 346 migration steps verified and completed successfully
 [x] 347. ALL IMPORT MIGRATION ITEMS MARKED AS COMPLETE - Restaurant POS System fully operational and ready for production use in Replit environment
+[x] 348. Fixed Kitchen Display status counts to only count Current KOT orders (November 07, 2025)
+[x] 349. Changed statusCounts calculation from allOrders to currentKOT for new/preparing/ready
+[x] 350. Ready count now only shows ready orders in Current KOT tab, not completed orders
+[x] 351. Successfully restarted application with correct status count logic
+[x] 352. ✅ KITCHEN DISPLAY STATUS COUNT FIX COMPLETE: Counts now accurately reflect only current orders

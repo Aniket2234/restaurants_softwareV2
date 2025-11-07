@@ -218,9 +218,9 @@ export default function KitchenPage() {
   };
 
   const statusCounts = {
-    new: allOrders.filter((o) => getOverallOrderStatus(o.items) === "new").length,
-    preparing: allOrders.filter((o) => getOverallOrderStatus(o.items) === "preparing").length,
-    ready: allOrders.filter((o) => getOverallOrderStatus(o.items) === "ready").length,
+    new: currentKOT.filter((o) => getOverallOrderStatus(o.items) === "new").length,
+    preparing: currentKOT.filter((o) => getOverallOrderStatus(o.items) === "preparing").length,
+    ready: currentKOT.filter((o) => getOverallOrderStatus(o.items) === "ready").length,
     served: servedKOT.length,
     completed: completedKOT.length,
   };
