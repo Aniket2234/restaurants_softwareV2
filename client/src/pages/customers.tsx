@@ -295,8 +295,8 @@ export default function CustomersPage() {
             {searchQuery ? "No customers found matching your search" : "No customers yet. Add your first customer!"}
           </div>
         ) : (
-          <div className="bg-card rounded-lg border border-card-border">
-            <table className="w-full">
+          <div className="bg-card rounded-lg border border-card-border overflow-x-auto">
+            <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>

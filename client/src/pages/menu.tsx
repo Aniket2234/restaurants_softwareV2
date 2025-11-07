@@ -270,7 +270,7 @@ export default function MenuPage() {
       <AppHeader title="Menu Management" />
 
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-48 flex-shrink-0">
+        <div className="w-48 flex-shrink-0 hidden lg:block">
           <CategorySidebar
             categories={sidebarCategories}
             selectedCategory={selectedCategory}
@@ -280,6 +280,20 @@ export default function MenuPage() {
 
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/30">
+            <div className="flex items-center gap-2 mb-3 lg:hidden">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-full" data-testid="select-category-mobile">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sidebarCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-center gap-2">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -500,8 +514,8 @@ export default function MenuPage() {
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading menu...</div>
             ) : (
-              <div className="bg-card rounded-lg border border-card-border">
-                <table className="w-full">
+              <div className="bg-card rounded-lg border border-card-border overflow-x-auto">
+                <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-border">
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Item Name</th>
