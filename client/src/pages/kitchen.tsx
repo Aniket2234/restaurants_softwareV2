@@ -319,28 +319,7 @@ export default function KitchenPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={activeTab === "current" ? "default" : "outline"}
-              onClick={() => setActiveTab("current")}
-              data-testid="button-tab-current"
-            >
-              Current KOT ({currentKOT.length})
-            </Button>
-            <Button
-              variant={activeTab === "served" ? "default" : "outline"}
-              onClick={() => setActiveTab("served")}
-              data-testid="button-tab-served"
-            >
-              Served KOT ({servedKOT.length})
-            </Button>
-            <Button
-              variant={activeTab === "completed" ? "default" : "outline"}
-              onClick={() => setActiveTab("completed")}
-              data-testid="button-tab-completed"
-            >
-              Completed KOT ({completedKOT.length})
-            </Button>
+          <div className="flex gap-2 flex-wrap items-center">
             <Button
               onClick={handleStartAll}
               disabled={currentKOT.length === 0 || startAllMutation.isPending}
@@ -359,6 +338,60 @@ export default function KitchenPage() {
               <Check className="h-4 w-4 mr-2" />
               {markAllPreparedMutation.isPending ? "Processing..." : "Mark All Prepared"}
             </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" data-testid="button-kot-tabs-menu">
+                  <Menu className="h-4 w-4 mr-2" />
+                  {activeTab === "current" && `Current KOT (${currentKOT.length})`}
+                  {activeTab === "served" && `Served KOT (${servedKOT.length})`}
+                  {activeTab === "completed" && `Completed KOT (${completedKOT.length})`}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>KOT Sections</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setActiveTab("current")}
+                  className={cn(
+                    "cursor-pointer",
+                    activeTab === "current" && "bg-primary/10 font-semibold"
+                  )}
+                  data-testid="menu-tab-current"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span>Current KOT</span>
+                    <Badge variant="secondary">{currentKOT.length}</Badge>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setActiveTab("served")}
+                  className={cn(
+                    "cursor-pointer",
+                    activeTab === "served" && "bg-primary/10 font-semibold"
+                  )}
+                  data-testid="menu-tab-served"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span>Served KOT</span>
+                    <Badge variant="secondary">{servedKOT.length}</Badge>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setActiveTab("completed")}
+                  className={cn(
+                    "cursor-pointer",
+                    activeTab === "completed" && "bg-primary/10 font-semibold"
+                  )}
+                  data-testid="menu-tab-completed"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span>Completed KOT</span>
+                    <Badge variant="secondary">{completedKOT.length}</Badge>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
