@@ -221,6 +221,8 @@ export default function KitchenPage() {
     new: allOrders.filter((o) => getOverallOrderStatus(o.items) === "new").length,
     preparing: allOrders.filter((o) => getOverallOrderStatus(o.items) === "preparing").length,
     ready: allOrders.filter((o) => getOverallOrderStatus(o.items) === "ready").length,
+    served: servedKOT.length,
+    completed: completedKOT.length,
   };
 
   return (
@@ -246,6 +248,18 @@ export default function KitchenPage() {
               <div className="w-3 h-3 rounded-full bg-success"></div>
               <span className="text-sm">
                 Ready <Badge variant="secondary">{statusCounts.ready}</Badge>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+              <span className="text-sm">
+                Served <Badge variant="secondary">{statusCounts.served}</Badge>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <span className="text-sm">
+                Completed <Badge variant="secondary">{statusCounts.completed}</Badge>
               </span>
             </div>
           </div>
